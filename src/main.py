@@ -2,6 +2,7 @@
 import math
 import random
 import sys
+from itertools import chain
 
 import numpy as np
 import pygame
@@ -271,24 +272,27 @@ def get_surrounding_cells(pos, my_wallmap, grid_size, sensor_range, sensor_angle
     surrounding_cells = []
 
     grid_pos = [math.floor(pos[0] / grid_size), math.floor(pos[1] / grid_size)]
+    grid_range = math.ceil(sensor_range / grid_size)
 
     def sign(a): return 1 if a > 0 else -1 if a < 0 else 0
 
     most_dist = [
-        int(math.cos(sensor_angle) * sensor_range / grid_size),
-        int(math.sin(sensor_angle) * sensor_range / grid_size)
+        round(math.cos(sensor_angle) * grid_range),
+        round(math.sin(sensor_angle) * grid_range)
     ]
 
     most_dist_aperture_min = [
-        int(math.cos(sensor_angle - sensor_aperature/2)
-            * sensor_range / grid_size),
-        int(math.sin(sensor_angle - sensor_aperature/2) * sensor_range / grid_size)
+        round(math.cos(sensor_angle - sensor_aperature/2)
+              * grid_range),
+        round(math.sin(sensor_angle - sensor_aperature/2)
+              * grid_range)
     ]
 
     most_dist_aperture_max = [
-        int(math.cos(sensor_angle + sensor_aperature/2)
-            * sensor_range / grid_size),
-        int(math.sin(sensor_angle + sensor_aperature/2) * sensor_range / grid_size)
+        round(math.cos(sensor_angle + sensor_aperature/2)
+              * grid_range),
+        round(math.sin(sensor_angle + sensor_aperature/2)
+              * grid_range)
     ]
 
     x_aperture_min = (0-sign(most_dist[0]),
@@ -415,6 +419,10 @@ def main() -> None:
 
         # surrounding_cells = get_simple_surrounding_cells(
         #    robot.get_position(), my_wallmap, grid_size, SENSOR_RANGE)
+
+        surrounding_edges = [cell for _, cell in surrounding_cells]
+        surrounding_edges = set(chain(*surrounding_edges))
+        print(f'Number of surrounding edges: {len(surrounding_edges)}')
 
         # Draw
         screen.fill(WHITE)
