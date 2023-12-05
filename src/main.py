@@ -1,4 +1,5 @@
 # main.py
+import math
 import random
 import sys
 
@@ -6,6 +7,7 @@ import pygame
 
 import wallmap
 from consts import *
+from robot import Robot
 from settings import *
 
 FPS = 60
@@ -268,11 +270,44 @@ def main() -> None:
     define_environment_1(my_wallmap, grid_size)
 
     clock = pygame.time.Clock()
+
+    robot = Robot([WIDTH//2, HEIGHT//2], 0)
+
+    keys_pressed = {
+        'w': False,
+        'a': False,
+        'd': False
+    }
+
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            elif event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_w:
+                    keys_pressed['w'] = True
+                elif event.key == pygame.K_a:
+                    keys_pressed['a'] = True
+                elif event.key == pygame.K_d:
+                    keys_pressed['d'] = True
+            elif event.type == pygame.KEYUP:
+
+                if event.key == pygame.K_w:
+                    keys_pressed['w'] = False
+                elif event.key == pygame.K_a:
+                    keys_pressed['a'] = False
+                elif event.key == pygame.K_d:
+                    keys_pressed['d'] = False
+
+        if keys_pressed['w']:
+            robot.move(1)
+        if keys_pressed['a']:
+            robot.rotate(math.radians(-1.5))
+        if keys_pressed['d']:
+            robot.rotate(math.radians(1.5))
 
         # Update
 
@@ -282,6 +317,8 @@ def main() -> None:
         my_wallmap.draw_tile_debug(screen)
         my_wallmap.draw(screen)
         my_wallmap.draw_obstacles(screen)
+
+        robot.draw(screen)
 
         # Refresh the display
         pygame.display.flip()
