@@ -255,16 +255,93 @@ def define_environment_1(my_wallmap, grid_size):
     return my_wallmap
 
 
-def get_surrounding_cells(pos, my_wallmap, grid_size, sensor_range):
+def find_min_max_cosine(start_angle, end_angle):
+    # Ensure the angles are within the valid range (0 to 360 degrees)
+    start_angle = start_angle % math.pi*2
+    end_angle = end_angle % math.pi*2
+
+    # Calculate cosine values
+    min_cosine = min(math.cos(start_angle), math.cos(end_angle))
+    max_cosine = max(math.cos(start_angle), math.cos(end_angle))
+
+    return min_cosine, max_cosine
+
+
+def get_surrounding_cells(pos, my_wallmap, grid_size, sensor_range, sensor_angle, sensor_aperature=math.pi):
+    surrounding_cells = []
+
+    grid_pos = [math.floor(pos[0] / grid_size), math.floor(pos[1] / grid_size)]
+
+    def sign(a): return 1 if a > 0 else -1 if a < 0 else 0
+
+    most_dist = [
+        int(math.cos(sensor_angle) * sensor_range / grid_size),
+        int(math.sin(sensor_angle) * sensor_range / grid_size)
+    ]
+
+    most_dist_aperture_min = [
+        int(math.cos(sensor_angle - sensor_aperature/2)
+            * sensor_range / grid_size),
+        int(math.sin(sensor_angle - sensor_aperature/2) * sensor_range / grid_size)
+    ]
+
+    most_dist_aperture_max = [
+        int(math.cos(sensor_angle + sensor_aperature/2)
+            * sensor_range / grid_size),
+        int(math.sin(sensor_angle + sensor_aperature/2) * sensor_range / grid_size)
+    ]
+
+    x_aperture_min = (0-sign(most_dist[0]),
+                      most_dist[0] + most_dist_aperture_min[0])
+    y_aperture_min = (0-sign(most_dist[1]),
+                      most_dist[1] + most_dist_aperture_min[1])
+
+    x_aperture_max = (0-sign(most_dist[0]),
+                      most_dist[0] + most_dist_aperture_max[0])
+    y_aperture_max = (0-sign(most_dist[1]),
+                      most_dist[1] + most_dist_aperture_max[1])
+
+    x_range = (0-sign(most_dist[0]), most_dist[0] +
+               sign(most_dist[0]))
+    y_range = (0-sign(most_dist[1]), most_dist[1] +
+               sign(most_dist[1]))
+
+    min_x = min((min(x_aperture_min), min(x_aperture_max), min(x_range)))
+    max_x = max((max(x_aperture_min), max(x_aperture_max), max(x_range)))
+
+    min_y = min((min(y_aperture_min), min(y_aperture_max), min(y_range)))
+    max_y = max((max(y_aperture_min), max(y_aperture_max), max(y_range)))
+
+    for x_offset in range(min_x, max_x+1):
+        for y_offset in range(min_y, max_y+1):
+            # check if x, y is inside borders
+
+            x = grid_pos[0] + x_offset
+            y = grid_pos[1] + y_offset
+
+            if x < 0 or x >= WIDTH // grid_size or y < 0 or y >= HEIGHT // grid_size:
+                continue
+
+            if f'{x};{y}' in my_wallmap.tilemap:
+                surrounding_cells.append((
+                    f'{x};{y}', my_wallmap.tilemap[f'{x};{y}']))
+
+    return surrounding_cells
+
+
+def get_simple_surrounding_cells(pos, my_wallmap, grid_size, sensor_range):
+
     surrounding_cells = []
 
     grid_pos = [math.floor(pos[0] / grid_size), math.floor(pos[1] / grid_size)]
     grid_range = math.ceil(sensor_range / grid_size)
 
-    for x in range(grid_pos[0] - grid_range, grid_pos[0] + grid_range + 1):
-        for y in range(grid_pos[1] - grid_range, grid_pos[1] + grid_range + 1):
-
+    for x_offset in range(-grid_range, grid_range+1):
+        for y_offset in range(-grid_range, grid_range+1):
             # check if x, y is inside borders
+
+            x = grid_pos[0] + x_offset
+            y = grid_pos[1] + y_offset
 
             if x < 0 or x >= WIDTH // grid_size or y < 0 or y >= HEIGHT // grid_size:
                 continue
@@ -334,7 +411,10 @@ def main() -> None:
         # Update
 
         surrounding_cells = get_surrounding_cells(
-            robot.get_position(), my_wallmap, grid_size, SENSOR_RANGE)
+            robot.get_position(), my_wallmap, grid_size, SENSOR_RANGE, robot.get_angle())
+
+        # surrounding_cells = get_simple_surrounding_cells(
+        #    robot.get_position(), my_wallmap, grid_size, SENSOR_RANGE)
 
         # Draw
         screen.fill(WHITE)
