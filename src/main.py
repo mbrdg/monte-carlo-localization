@@ -3,6 +3,7 @@ import math
 import random
 import sys
 
+import numpy as np
 import pygame
 
 import wallmap
@@ -254,13 +255,34 @@ def define_environment_1(my_wallmap, grid_size):
     return my_wallmap
 
 
+def get_surrounding_cells(pos, my_wallmap, grid_size, sensor_range):
+    surrounding_cells = []
+
+    grid_pos = [math.floor(pos[0] / grid_size), math.floor(pos[1] / grid_size)]
+    grid_range = math.ceil(sensor_range / grid_size)
+
+    for x in range(grid_pos[0] - grid_range, grid_pos[0] + grid_range + 1):
+        for y in range(grid_pos[1] - grid_range, grid_pos[1] + grid_range + 1):
+
+            # check if x, y is inside borders
+
+            if x < 0 or x >= WIDTH // grid_size or y < 0 or y >= HEIGHT // grid_size:
+                continue
+
+            if f'{x};{y}' in my_wallmap.tilemap:
+                surrounding_cells.append((
+                    f'{x};{y}', my_wallmap.tilemap[f'{x};{y}']))
+
+    return surrounding_cells
+
+
 def main() -> None:
     pygame.init()
 
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Wall Map")
 
-    grid_size = 20
+    grid_size = GRID_SIZE
 
     my_wallmap = wallmap.Wallmap(None, grid_size)
 
@@ -311,6 +333,9 @@ def main() -> None:
 
         # Update
 
+        surrounding_cells = get_surrounding_cells(
+            robot.get_position(), my_wallmap, grid_size, SENSOR_RANGE)
+
         # Draw
         screen.fill(WHITE)
 
@@ -319,6 +344,16 @@ def main() -> None:
         my_wallmap.draw_obstacles(screen)
 
         robot.draw(screen)
+
+        for key, cell in surrounding_cells:
+            cell_x, cell_y = key.split(';')
+            cell_x = int(cell_x) * grid_size
+            cell_y = int(cell_y) * grid_size
+            s = pygame.Surface((20, 20), pygame.SRCALPHA)
+            # notice the alpha value in the color
+            s.fill((0, 255, 0, 50))
+
+            screen.blit(s, (cell_x, cell_y))
 
         # Refresh the display
         pygame.display.flip()
