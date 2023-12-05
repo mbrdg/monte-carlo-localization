@@ -1,3 +1,4 @@
+import math
 import sys
 
 import numpy as np
@@ -86,7 +87,6 @@ class Wallmap:
                 # check if x, y is inside borders
 
                 if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
-                    print(f'({x}, {y}) is outside borders')
                     continue
 
                 tile_points = [(x, y), (x+1, y), (x, y+1), (x+1, y+1)]
@@ -129,7 +129,8 @@ class Wallmap:
         # represent tiles in tilemap as red rectangles, with increasing intensity for each edge
         for tile in self.tilemap:
             tile_pos = np.array([int(x) for x in tile.split(';')])
-            intensity = int(
-                (len(self.edges)-len(self.tilemap[tile]))/len(self.edges) * 255)
-            pygame.draw.rect(screen, (255, intensity, intensity), pygame.Rect(
+            intensity = (len(self.edges) -
+                         len(self.tilemap[tile]))/len(self.edges)
+            intensity = intensity**4
+            pygame.draw.rect(screen, (255, int(intensity*255), int(intensity*255)), pygame.Rect(
                 tile_pos * self.grid_size, (self.grid_size, self.grid_size)))
