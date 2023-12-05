@@ -1,4 +1,5 @@
 # main.py
+import copy
 import math
 import random
 import sys
@@ -405,12 +406,17 @@ def main() -> None:
                 elif event.key == pygame.K_d:
                     keys_pressed['d'] = False
 
+        new_position = copy.deepcopy(robot.get_position())
+
         if keys_pressed['w']:
-            robot.move(1)
+            new_position = robot.move(1, position=new_position)
         if keys_pressed['a']:
             robot.rotate(math.radians(-1.5))
         if keys_pressed['d']:
             robot.rotate(math.radians(1.5))
+
+        if not my_wallmap.robot_has_collision(new_position, robot.radius):
+            robot.apply_move(new_position)
 
         # Update
 

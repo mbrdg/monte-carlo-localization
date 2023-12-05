@@ -64,6 +64,10 @@ def lineLineIntersect(P0, P1, Q0, Q1):
     return False
 
 
+def sign(x):
+    return -1 if x < 0 else 1
+
+
 class Wallmap:
     def __init__(self, game, grid_size=16):
         self.game = game
@@ -124,6 +128,59 @@ class Wallmap:
 
             # Use Pygame to draw the filled polygon representing the obstacle
             pygame.draw.polygon(screen, obstacle.color, points)
+
+    def circle_line_collision(l1, l2, cpt, r):
+        x1 = l1[0] - cpt[0]
+        y1 = l1[1] - cpt[1]
+        x2 = l2[0] - cpt[0]
+        y2 = l2[1] - cpt[1]
+        dx = x2 - x1
+        dy = y2 - y1
+        dr = math.sqrt(dx*dx + dy*dy)
+        D = x1 * y2 - x2 * y1
+        discriminant = r*r*dr*dr - D*D
+        if discriminant < 0:
+            return []
+        if discriminant == 0:
+            xa = (D * dy) / (dr * dr)
+            ya = (-D * dx) / (dr * dr)
+            ta = (xa-x1)*dx/dr + (ya-y1)*dy/dr
+            return [(xa + cpt[0], ya + cpt[1])] if 0 < ta < dr else []
+
+        xa = (D * dy + sign(dy) * dx * math.sqrt(discriminant)) / (dr * dr)
+        ya = (-D * dx + abs(dy) * math.sqrt(discriminant)) / (dr * dr)
+        ta = (xa-x1)*dx/dr + (ya-y1)*dy/dr
+        xpt = [(xa + cpt[0], ya + cpt[1])] if 0 < ta < dr else []
+
+        xb = (D * dy - sign(dy) * dx * math.sqrt(discriminant)) / (dr * dr)
+        yb = (-D * dx - abs(dy) * math.sqrt(discriminant)) / (dr * dr)
+        tb = (xb-x1)*dx/dr + (yb-y1)*dy/dr
+        xpt += [(xb + cpt[0], yb + cpt[1])] if 0 < tb < dr else []
+        return xpt
+
+    def robot_has_collision(self, robot_pos, robot_radius):
+
+        cx, cy = robot_pos
+        grid_pos = [math.floor(robot_pos[0] / self.grid_size),
+                    math.floor(robot_pos[1] / self.grid_size)]
+        grid_range = math.ceil(robot_radius / self.grid_size)
+
+        for x_offset in range(-grid_range, grid_range+1):
+            for y_offset in range(-grid_range, grid_range+1):
+                # check if x, y is inside borders
+
+                x = grid_pos[0] + x_offset
+                y = grid_pos[1] + y_offset
+
+                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                    continue
+
+                if f'{x};{y}' in self.tilemap:
+                    edges = self.tilemap[f'{x};{y}']
+                    for edge in edges:
+                        if Wallmap.circle_line_collision(edge.pos1 * self.grid_size, edge.pos2 * self.grid_size, robot_pos, robot_radius):
+                            return True
+        return False
 
     def draw_tile_debug(self, screen):
         # represent tiles in tilemap as red rectangles, with increasing intensity for each edge
