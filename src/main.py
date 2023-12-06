@@ -96,7 +96,7 @@ def main() -> None:
         # Update
 
         surrounding_cells = my_wallmap.get_surrounding_cells(robot.get_position(), mode='aperture',
-                                                             range_=robot.range_, angle=robot.get_angle(), aperture=robot.aperture)
+                                                             range_=robot.range_, angle=robot.get_angle(), aperture=robot.aperture*1.2)
         surrounding_edges = [cell for _, cell in surrounding_cells]
         surrounding_edges = set(chain(*surrounding_edges))
 
