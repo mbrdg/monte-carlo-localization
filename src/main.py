@@ -406,7 +406,6 @@ def main() -> None:
 
         surrounding_edges = [cell for _, cell in surrounding_cells]
         surrounding_edges = set(chain(*surrounding_edges))
-        print(f'Number of surrounding edges: {len(surrounding_edges)}')
 
         # Draw
         screen.fill(WHITE)
