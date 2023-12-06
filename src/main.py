@@ -191,7 +191,7 @@ def main() -> None:
             num_generated_particles = (len(particles) - len(top_scores))
 
             if (len(particles) > 20):
-                deductive = (len(particles) - len(top_scores)) * 0.97
+                deductive = (len(particles) - len(top_scores)) * 0.9
                 if deductive <= 0:
                     deductive = 1
                 num_generated_particles = round(deductive)
