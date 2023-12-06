@@ -7,6 +7,7 @@ import pygame
 ROBOT_RADIUS = 10
 SIGMA_MOVE = .5
 SIGMA_ROTATE = math.radians(.3)
+SIGMA_MEASURE = 1.0
 
 
 class Robot:
@@ -87,7 +88,7 @@ class Robot:
         for sample in self.sensors:
             intersections = [line_line_intersection((self.position, sample), wall) for wall in walls]
             sample_measurements = [self.max_sensor_range if point is None else math.dist(self.position, point) for point in intersections]
-            measurements.append(min(sample_measurements) + random.gauss(0.0, 1.0))
+            measurements.append(min(sample_measurements) + random.gauss(0.0, SIGMA_MEASURE))
 
         return measurements
 
