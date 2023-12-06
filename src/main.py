@@ -137,7 +137,7 @@ def main() -> None:
         if pressed_keys[pygame.K_d]:
             _, rnoise = robot.rotate(math.radians(ROT_SPEED))
             for p in particles:
-                p.rotate(math.radians(-ROT_SPEED), noise=rnoise)
+                p.rotate(math.radians(ROT_SPEED), noise=rnoise)
 
         if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
@@ -163,12 +163,12 @@ def main() -> None:
         scores = [(i, p.likelihood(ground_thruth))
                   for i, p in enumerate(particles)]
         scores.sort(key=lambda x: x[1], reverse=True)
-        top_scores = scores[:(SAMPLES // 10)]
+        top_scores = scores[:(len(particles) // 5)]
 
         x, y = np.meshgrid(np.arange(width), np.arange(height))
         density_map = np.zeros((height, width))
 
-        VARIANCE = 3000
+        VARIANCE = 1000
 
         for i, weight in top_scores:
             density_map += weight * \
@@ -177,13 +177,25 @@ def main() -> None:
 
         density_map /= np.sum(density_map)
 
-        num_generated_particles = SAMPLES - len(top_scores)
-        generated_particle_positions = generate_particle_positions(np.array(
-            [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
+        # if density map has Nan values, skip
 
-        particles = [particles[i] for i, _ in top_scores]
-        particles += [Particle(position, random.uniform(0, 2 * math.pi),
-                               range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions]
+        if not np.isnan(density_map).any():
+
+            num_generated_particles = (len(particles) - len(top_scores))
+
+            if (len(particles) > 20):
+                deductive = (len(particles) - len(top_scores)) * 0.97
+                if deductive <= 0:
+                    deductive = 1
+                num_generated_particles = round(deductive)
+
+            print(num_generated_particles)
+            generated_particle_positions = generate_particle_positions(np.array(
+                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
+
+            particles = [particles[i] for i, _ in top_scores]
+            particles.extend([Particle(position, random.uniform(0, 2 * math.pi),
+                                       range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
 
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))

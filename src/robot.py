@@ -37,6 +37,13 @@ class Particle:
 
     def likelihood(self, ground_thruth):
 
+        dists = [abs(m - g)
+                 for m, g in zip(self.measurements, ground_thruth)]
+
+        weigth = self.range_*self.num_sensors - sum(dists)
+
+        return weigth
+
         def normpdf(x, mu, sigma):
             return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
 
