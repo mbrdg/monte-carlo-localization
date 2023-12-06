@@ -17,18 +17,6 @@ from settings import *
 FPS = 60
 
 
-def find_min_max_cosine(start_angle, end_angle):
-    # Ensure the angles are within the valid range (0 to 360 degrees)
-    start_angle = start_angle % math.pi*2
-    end_angle = end_angle % math.pi*2
-
-    # Calculate cosine values
-    min_cosine = min(math.cos(start_angle), math.cos(end_angle))
-    max_cosine = max(math.cos(start_angle), math.cos(end_angle))
-
-    return min_cosine, max_cosine
-
-
 def get_surrounding_cells(pos, my_wallmap, grid_size, sensor_range, sensor_angle, sensor_aperature=math.pi):
     surrounding_cells = []
 
