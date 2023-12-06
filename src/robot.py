@@ -36,10 +36,11 @@ class Particle:
         return self.radius
 
     def likelihood(self, ground_thruth):
+
         def normpdf(x, mu, sigma):
             return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
 
-        return math.prod(
+        return math.fsum(
             normpdf(measured, thruth, SIGMA_MEASURE)
             for thruth, measured in zip(ground_thruth, self.measurements)
         )

@@ -6,6 +6,7 @@ import random
 import sys
 from itertools import chain
 
+import numpy as np
 import pygame
 
 import map_gen
@@ -15,7 +16,7 @@ from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 300
+SAMPLES = 100
 SPEED = 3
 
 
@@ -54,6 +55,17 @@ def get_surrounding_cells_edges(particle, my_wallmap):
     surrounding_edges = set(chain(*surrounding_edges))
 
     return surrounding_cells, surrounding_edges
+
+
+def gaussian_distribution(x, y, mean, variance):
+    return np.exp(-((x - mean[0])**2 + (y - mean[1])**2) / (2 * variance)) / (2 * np.pi * variance)
+
+
+def generate_particle_positions(positions, weights, num_particles):
+    particle_indices = np.random.choice(
+        len(positions), size=num_particles, p=weights/np.sum(weights))
+    particles = positions[particle_indices]
+    return particles
 
 
 def main() -> None:
@@ -116,14 +128,16 @@ def main() -> None:
             next_positions = [p.move(SPEED, noise=mnoise)[0]
                               for p in particles]
 
+        ROT_SPEED = 5
+
         if pressed_keys[pygame.K_a]:
-            _, lnoise = robot.rotate(math.radians(-1.5))
+            _, lnoise = robot.rotate(math.radians(-ROT_SPEED))
             for p in particles:
-                p.rotate(math.radians(-1.5), noise=lnoise)
+                p.rotate(math.radians(-ROT_SPEED), noise=lnoise)
         if pressed_keys[pygame.K_d]:
-            _, rnoise = robot.rotate(math.radians(1.5))
+            _, rnoise = robot.rotate(math.radians(ROT_SPEED))
             for p in particles:
-                p.rotate(math.radians(-1.5), noise=rnoise)
+                p.rotate(math.radians(-ROT_SPEED), noise=rnoise)
 
         if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
@@ -132,7 +146,8 @@ def main() -> None:
 
         # Update
 
-        surrounding_cells, surrounding_edges = get_surrounding_cells_edges(robot, my_wallmap)
+        surrounding_cells, surrounding_edges = get_surrounding_cells_edges(
+            robot, my_wallmap)
         robot.update(surrounding_edges, grid_size=grid_size)
 
         for p in particles:
@@ -145,8 +160,30 @@ def main() -> None:
         my_wallmap.draw(screen, draw_tile_debug=True)
 
         ground_thruth = robot.measure(surrounding_edges)
-        scores = [i, p.likelihood(ground_thruth) for i, p in enumrate(particles)].sort()
-        top_scores = scores[:SAMPLES // 10]
+        scores = [(i, p.likelihood(ground_thruth))
+                  for i, p in enumerate(particles)]
+        scores.sort(key=lambda x: x[1], reverse=True)
+        top_scores = scores[:(SAMPLES // 10)]
+
+        x, y = np.meshgrid(np.arange(width), np.arange(height))
+        density_map = np.zeros((height, width))
+
+        VARIANCE = 3000
+
+        for i, weight in top_scores:
+            density_map += weight * \
+                gaussian_distribution(
+                    x, y, particles[i].get_position(), VARIANCE)
+
+        density_map /= np.sum(density_map)
+
+        num_generated_particles = SAMPLES - len(top_scores)
+        generated_particle_positions = generate_particle_positions(np.array(
+            [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
+
+        particles = [particles[i] for i, _ in top_scores]
+        particles += [Particle(position, random.uniform(0, 2 * math.pi),
+                               range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions]
 
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))
