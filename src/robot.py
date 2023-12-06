@@ -12,7 +12,7 @@ SIGMA_MEASURE = 1.0
 
 class Robot:
     def __init__(self, position, angle, *,
-                 max_sensor_range=20.0, aperture=math.pi, num_sensors=10):
+                 max_sensor_range=50.0, aperture=math.pi/4.0, num_sensors=10):
         self.position = position
         self.angle = angle
         self.radius = ROBOT_RADIUS
@@ -20,7 +20,6 @@ class Robot:
         self.max_sensor_range = max_sensor_range
         self.aperture = aperture
         self.num_sensors = num_sensors
-        self.compute_sensor_points()
 
     def get_position(self):
         return self.position
@@ -37,7 +36,6 @@ class Robot:
         else:
             target_angle += self.angle
 
-        self.compute_sensor_points()
         return target_angle
 
     def apply_rotation(self, angle):
@@ -50,7 +48,6 @@ class Robot:
         speed = speed + random.gauss(0, SIGMA_MOVE)
         position[0] += speed * math.cos(self.angle)
         position[1] += speed * math.sin(self.angle)
-        self.compute_sensor_points()
 
         return position
 
@@ -59,40 +56,60 @@ class Robot:
 
     def compute_sensor_points(self):
         x, y = self.position
-        min_angle, max_angle = self.angle - self.aperture / 2.0, self.angle + self.aperture / 2.0
+        start_angle = self.angle - self.aperture / 2.0
+        stop_angle = self.angle + self.aperture / 2.0
 
-        self.sensors = (
+        return (
             (x + math.cos(angle) * self.max_sensor_range, y + math.sin(angle) * self.max_sensor_range)
-            for angle in np.linspace(min_angle, max_angle, num=self.num_sensors)
+            for angle in np.linspace(start_angle, stop_angle, num=self.num_sensors)
         )
 
+    @staticmethod
+    def line_line_intersection(a, b):
+        (x1, y1), (x2, y2) = a
+        (x3, y3), (x4, y4) = b
+
+        denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4) 
+        if denominator == 0.0:
+            return None
+        
+        det_a, det_b = (x1 * y2 - y1 * x2), (x3 * y4 - y3 * x4)
+        px = (det_a * (x3 - x4) - (x2 - x1) * det_b) / denominator
+        py = (det_a * (y3 - y4) - (y2 - y1) * det_b) / denominator
+
+        return (px, py)
+
     def measure(self, walls):
-        # TODO: This is not tested
-        # Please, Colino be kind with me if you found any bug here!
-
-        def line_line_intersection(p1, p2):
-            (x1, y1), (x2, y2) = p1
-            (x3, y3), (x4, y4) = p2
-
-            denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4) 
-            if denominator == 0:
-                return None
-            
-            common_a, common_b = (x1 * y2 - y1 * x2), (x3 * y4 - y3 * x4)
-            px = (common_a * (x3 - x4) - (x2 - x1) * common_b) / denominator
-            py = (common_a * (y3 - y4) - (y2 - y1) * common_b) / denominator
-
-            return (px, py)
-
         measurements = []
-        for sample in self.sensors:
-            intersections = [line_line_intersection((self.position, sample), wall) for wall in walls]
-            sample_measurements = [self.max_sensor_range if point is None else math.dist(self.position, point) for point in intersections]
-            measurements.append(min(sample_measurements) + random.gauss(0.0, SIGMA_MEASURE))
+        for sample in self.compute_sensor_points():
+            intersections = (Robot.line_line_intersection((wall.pos1, wall.pos2), (self.position, sample)) for wall in walls)
+            distances = (math.dist(self.position, point) for point in intersections if point is not None)
+
+            measure = min(distances, default=self.max_sensor_range)
+            noise = random.gauss(0.0, SIGMA_MEASURE)
+            measurements.append(measure + noise)
 
         return measurements
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, (0, 0, 0), self.position, ROBOT_RADIUS)
-        pygame.draw.line(screen, (255, 0, 0), self.position, (
-            self.position[0] + ROBOT_RADIUS * math.cos(self.angle), self.position[1] + ROBOT_RADIUS * math.sin(self.angle)), 3)
+    def transform_measures_into_points(self, distances):
+        x, y = self.position
+        start_angle = self.angle + self.aperture / 2.0
+        stop_angle = self.angle - self.aperture / 2.0
+        angles = np.linspace(start_angle, stop_angle, num=self.num_sensors)
+
+        return tuple(
+            (x + math.cos(angle) * distance, y + math.sin(angle) * distance) 
+            for angle, distance in zip(angles, distances)
+        )
+
+    def draw(self, screen, walls):
+        x, y = self.position
+        pygame.draw.circle(screen, (0, 0, 0), (x, y), ROBOT_RADIUS)
+
+        xr, yr = x + self.radius * math.cos(self.angle), y + self.radius * math.sin(self.angle) 
+        pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
+
+        distances = self.measure(walls)
+        points = self.transform_measures_into_points(distances)
+        # points = tuple(self.compute_sensor_points())
+        pygame.draw.lines(screen, (255, 0, 0, 128), False, points, 3)

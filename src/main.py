@@ -415,7 +415,7 @@ def main() -> None:
         my_wallmap.draw(screen)
         my_wallmap.draw_obstacles(screen)
 
-        robot.draw(screen)
+        robot.draw(screen, surrounding_edges)
 
         for key, cell in surrounding_cells:
             cell_x, cell_y = key.split(';')
