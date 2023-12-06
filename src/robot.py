@@ -89,7 +89,8 @@ class Particle:
         for sample in self.compute_sensor_points():
             intersections = (
                 geometry_utils.line_line_intersection(
-                    (wall.pos1 * grid_size, wall.pos2 * grid_size), (self.position, sample)
+                    (wall.pos1 * grid_size, wall.pos2 *
+                     grid_size), (self.position, sample)
                 ) for wall in walls
             )
             distances = (
@@ -107,11 +108,12 @@ class Particle:
         self.measurements = self.measure(walls, grid_size=grid_size)
 
     @staticmethod
-    def draw_robot(screen, robot):
+    def draw_robot(screen, robot, *, color=(0, 0, 0)):
         x, y = robot.position
-        pygame.draw.circle(screen, (0, 0, 0), (x, y), robot.radius)
+        pygame.draw.circle(screen, color, (x, y), robot.radius)
 
-        xr, yr = x + robot.radius * math.cos(robot.angle), y + robot.radius * math.sin(robot.angle)
+        xr, yr = x + robot.radius * \
+            math.cos(robot.angle), y + robot.radius * math.sin(robot.angle)
         pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
 
         points = tuple(robot.compute_sensor_points(robot.measurements))
@@ -122,14 +124,17 @@ class Particle:
         x, y = particle.position
         pygame.draw.circle(screen, (0, 0, 255), (x, y), particle.radius)
 
-        xr, yr = x + particle.radius * math.cos(particle.angle), y + particle.radius * math.sin(particle.angle)
+        xr, yr = x + particle.radius * \
+            math.cos(particle.angle), y + particle.radius * \
+            math.sin(particle.angle)
         pygame.draw.line(screen, (0, 255, 255), (x, y), (xr, yr), 3)
 
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position
         pygame.draw.circle(screen, (0, 0, 0), (x, y), Particle.RADIUS)
 
-        xr, yr = x + self.radius * math.cos(self.angle), y + self.radius * math.sin(self.angle)
+        xr, yr = x + self.radius * \
+            math.cos(self.angle), y + self.radius * math.sin(self.angle)
         pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
 
         points = []
@@ -149,4 +154,5 @@ class Particle:
         if draw_measurements:
             # draw measurements
             for i in range(0, len(points)-1):
-                pygame.draw.line(screen, (0, 255, 0), points[i], points[i+1], 3)
+                pygame.draw.line(screen, (0, 255, 0),
+                                 points[i], points[i+1], 3)

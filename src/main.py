@@ -14,9 +14,9 @@ from consts import *
 from robot import Particle
 from settings import *
 
-
-FPS = 60
-SAMPLES = 1000
+FPS = 24
+SAMPLES = 300
+SPEED = 3
 
 
 def read_config(file_path, sim_settings_name):
@@ -28,7 +28,8 @@ def read_config(file_path, sim_settings_name):
     grid_size = config.getint('EnvironmentSettings', 'grid_size')
 
     sensor_range = config.getint(sim_settings_name, 'sensor_range')
-    sensor_aperture = math.radians(config.getint(sim_settings_name, 'sensor_aperture'))
+    sensor_aperture = math.radians(config.getint(
+        sim_settings_name, 'sensor_aperture'))
     num_sensors = config.getint(sim_settings_name, 'num_sensors')
 
     return {
@@ -39,6 +40,20 @@ def read_config(file_path, sim_settings_name):
         'sensor_aperture': sensor_aperture,
         'num_sensors': num_sensors
     }
+
+
+def get_surrounding_cells_edges(particle, my_wallmap):
+    surrounding_cells = my_wallmap.get_surrounding_cells(
+        particle.get_position(),
+        mode='aperture',
+        range_=particle.range_,
+        angle=particle.get_angle(),
+        aperture=particle.aperture*1.2
+    )
+    surrounding_edges = [cell for _, cell in surrounding_cells]
+    surrounding_edges = set(chain(*surrounding_edges))
+
+    return surrounding_cells, surrounding_edges
 
 
 def main() -> None:
@@ -96,8 +111,10 @@ def main() -> None:
         next_positions = [p.get_position() for p in particles]
 
         if pressed_keys[pygame.K_w]:
-            robot_next_position, mnoise = robot.move(1, position=robot_next_position)
-            next_positions = [p.move(1, noise=mnoise)[0] for p in particles] 
+            robot_next_position, mnoise = robot.move(
+                SPEED, position=robot_next_position)
+            next_positions = [p.move(SPEED, noise=mnoise)[0]
+                              for p in particles]
 
         if pressed_keys[pygame.K_a]:
             _, lnoise = robot.rotate(math.radians(-1.5))
@@ -115,18 +132,15 @@ def main() -> None:
 
         # Update
 
-        surrounding_cells = my_wallmap.get_surrounding_cells(
-            robot.get_position(),
-            mode='aperture',
-            range_=robot.range_, 
-            angle=robot.get_angle(),
-            aperture=robot.aperture*1.2
-        )
-
-        surrounding_edges = [cell for _, cell in surrounding_cells]
-        surrounding_edges = set(chain(*surrounding_edges))
+        surrounding_cells, surrounding_edges = get_surrounding_cells_edges(
+            robot, my_wallmap)
 
         robot.update(surrounding_edges, grid_size=grid_size)
+
+        for p in particles:
+            _, p_surrounding_edges = get_surrounding_cells_edges(
+                p, my_wallmap)
+            p.update(p_surrounding_edges, grid_size=grid_size)
 
         # Draw
         screen.fill(WHITE)
@@ -137,7 +151,7 @@ def main() -> None:
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))
 
-        Particle.draw_robot(screen, robot)
+        Particle.draw_robot(screen, robot, color=(148, 0, 211))
         for p in particles:
             Particle.draw_particle(screen, p)
 
