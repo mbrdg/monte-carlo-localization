@@ -38,7 +38,7 @@ class Particle:
     @staticmethod
     def likelihood(ground_thruth, measurements):
         def normpdf(x, mu, sigma):
-            return math.exp(- 0.5 * ((x - mu) / sigma) ** 2.0) / (sigma * math.sqrt(2 * math.pi))
+            return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
 
         return math.prod(
             normpdf(measured, thruth, SIGMA_MEASURE)
