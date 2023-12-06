@@ -1,5 +1,5 @@
-import math
 import itertools
+import math
 import random
 
 import numpy as np
@@ -24,6 +24,8 @@ class Robot:
         self.max_sensor_range = max_sensor_range
         self.aperture = aperture
         self.num_sensors = num_sensors
+        self.measurements = itertools.repeat(
+            self.max_sensor_range, self.num_sensors)
 
     def get_position(self):
         return self.position
@@ -65,7 +67,8 @@ class Robot:
         angles = np.linspace(start_angle, stop_angle, num=self.num_sensors)
 
         if distances is None:
-            distances = itertools.repeat(self.max_sensor_range, self.num_sensors)
+            distances = itertools.repeat(
+                self.max_sensor_range, self.num_sensors)
 
         return (
             (x + math.cos(angle) * distance, y + math.sin(angle) * distance)
@@ -85,7 +88,8 @@ class Robot:
         for sample in self.compute_sensor_points():
             intersections = (
                 Robot.intersects(
-                    (wall.pos1 * GRID_SIZE, wall.pos2 * GRID_SIZE), (self.position, sample)
+                    (wall.pos1 * GRID_SIZE, wall.pos2 *
+                     GRID_SIZE), (self.position, sample)
                 ) for wall in walls
             )
             distances = (
@@ -93,13 +97,17 @@ class Robot:
                 for point in intersections if point is not None
             )
 
-            measure = min(min(distances, default=self.max_sensor_range), self.max_sensor_range)
+            measure = min(
+                min(distances, default=self.max_sensor_range), self.max_sensor_range)
             noise = random.gauss(0.0, SIGMA_MEASURE)
             measurements.append(measure + noise)
 
         return measurements
 
-    def draw(self, screen, walls):
+    def update(self, walls):
+        self.measurements = self.measure(walls)
+
+    def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position
         pygame.draw.circle(screen, (0, 0, 0), (x, y), ROBOT_RADIUS)
 
@@ -107,10 +115,22 @@ class Robot:
             math.cos(self.angle), y + self.radius * math.sin(self.angle)
         pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
 
-        for sensor_point in self.compute_sensor_points():
-            pygame.draw.line(screen, (0, 100, 100), (x, y), sensor_point, 3)
+        points = []
 
-        distances = self.measure(walls)
-        points = tuple(self.compute_sensor_points(distances))
-        for point in points:
-            pygame.draw.line(screen, (255, 0, 0), (x, y), point, 3)
+        if draw_measurements or draw_sensor_ranges:
+            points = tuple(self.compute_sensor_points(self.measurements))
+
+        if draw_sensor_ranges:
+            # draw sensor ranges
+            for sensor_point in self.compute_sensor_points():
+                pygame.draw.line(screen, (0, 200, 200),
+                                 (x, y), sensor_point, 2)
+
+            for point in points:
+                pygame.draw.line(screen, (255, 0, 0), (x, y), point, 2)
+
+        if draw_measurements:
+            # draw measurements
+            for i in range(0, len(points)-1):
+                pygame.draw.line(screen, (0, 255, 0), points[i],
+                                 points[i+1], 3)
