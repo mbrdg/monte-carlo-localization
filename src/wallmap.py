@@ -6,7 +6,6 @@ import pygame
 
 import geometry_utils
 from consts import *
-from settings import *
 
 
 class Edge:
@@ -31,13 +30,15 @@ class Obstacle:
 
 
 class Wallmap:
-    def __init__(self, game, grid_size=16):
+    def __init__(self, game, grid_size=16, *, width=800, height=600):
         self.game = game
         self.grid_size = grid_size
         self.tilemap = {}
         self.gridmap = {}
         self.edges = []
         self.obstacles = []
+        self.width = width
+        self.height = height
 
     def add_edge(self, edge):
         pos1 = edge.pos1
@@ -52,7 +53,7 @@ class Wallmap:
 
                 # check if x, y is inside borders
 
-                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                if x < 0 or x >= self.width // self.grid_size or y < 0 or y >= self.height // self.grid_size:
                     continue
 
                 tile_points = [(x, y), (x+1, y), (x, y+1), (x+1, y+1)]
@@ -120,7 +121,7 @@ class Wallmap:
                 x = grid_pos[0] + x_offset
                 y = grid_pos[1] + y_offset
 
-                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                if x < 0 or x >= self.width // self.grid_size or y < 0 or y >= self.height // self.grid_size:
                     continue
 
                 if f'{x};{y}' in self.tilemap:
@@ -145,7 +146,7 @@ class Wallmap:
                 x = grid_pos[0] + x_offset
                 y = grid_pos[1] + y_offset
 
-                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                if x < 0 or x >= self.width // self.grid_size or y < 0 or y >= self.height // self.grid_size:
                     continue
 
                 if f'{x};{y}' in self.tilemap:
@@ -211,7 +212,7 @@ class Wallmap:
                 x = grid_pos[0] + x_offset
                 y = grid_pos[1] + y_offset
 
-                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                if x < 0 or x >= self.width // self.grid_size or y < 0 or y >= self.height // self.grid_size:
                     continue
 
                 if f'{x};{y}' in self.tilemap:

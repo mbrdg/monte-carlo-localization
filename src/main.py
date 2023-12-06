@@ -1,11 +1,11 @@
 # main.py
+import argparse
+import configparser
 import copy
 import math
-import random
 import sys
 from itertools import chain
 
-import numpy as np
 import pygame
 
 import map_gen
@@ -17,24 +17,62 @@ from settings import *
 FPS = 60
 
 
+def read_config(file_path, sim_settings_name):
+    config = configparser.ConfigParser()
+    config.read(file_path)
+
+    width, height = config.getint('EnvironmentSettings', 'window_width'), config.getint(
+        'EnvironmentSettings', 'window_height')
+    grid_size = config.getint('EnvironmentSettings', 'grid_size')
+
+    sensor_range = config.getint(sim_settings_name, 'sensor_range')
+    sensor_aperture = math.radians(config.getint(
+        sim_settings_name, 'sensor_aperture'))
+    num_sensors = config.getint(sim_settings_name, 'num_sensors')
+
+    return {
+        'width': width,
+        'height': height,
+        'grid_size': grid_size,
+        'sensor_range': sensor_range,
+        'sensor_aperture': sensor_aperture,
+        'num_sensors': num_sensors
+    }
+
+
 def main() -> None:
+
+    # Create an ArgumentParser object
+    parser = argparse.ArgumentParser(description='Robot Simulation Program')
+
+    # Add a command-line argument for the config file
+    parser.add_argument('--sim_settings', type=str, default='SimSettingsDefault',
+                        help='Name for the simulation settings')
+
+    # Parse the command-line arguments
+    args = parser.parse_args()
+
+    config_data = read_config('config.ini', args.sim_settings)
+
+    width, height = config_data['width'], config_data['height']
+    grid_size = config_data['grid_size']
+    sensor_range = config_data['sensor_range']
+    sensor_aperture = config_data['sensor_aperture']
+    num_sensors = config_data['num_sensors']
+
     pygame.init()
 
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption("Wall Map")
 
-    grid_size = GRID_SIZE
-
     my_wallmap = wallmap.Wallmap(None, grid_size)
-
-    # Add edges
-    # random edges
 
     map_gen.define_environment_1(my_wallmap, grid_size)
 
     clock = pygame.time.Clock()
 
-    robot = Robot([WIDTH//2, HEIGHT//2], 0, aperture=math.pi/2, num_sensors=20)
+    robot = Robot([width//2, height//2], 0, range_=sensor_range,
+                  aperture=sensor_aperture, num_sensors=num_sensors)
 
     running = True
     while running:
@@ -58,11 +96,11 @@ def main() -> None:
         # Update
 
         surrounding_cells = my_wallmap.get_surrounding_cells(robot.get_position(), mode='aperture',
-                                                             range_=SENSOR_RANGE, angle=robot.get_angle(), aperture=robot.aperture)
+                                                             range_=robot.range_, angle=robot.get_angle(), aperture=robot.aperture)
         surrounding_edges = [cell for _, cell in surrounding_cells]
         surrounding_edges = set(chain(*surrounding_edges))
 
-        robot.update(surrounding_edges)
+        robot.update(surrounding_edges, grid_size=grid_size)
 
         # Draw
         screen.fill(WHITE)

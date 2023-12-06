@@ -6,7 +6,6 @@ import numpy as np
 import pygame
 
 import geometry_utils
-from settings import *
 
 ROBOT_RADIUS = 10
 SIGMA_MOVE = .5
@@ -15,17 +14,16 @@ SIGMA_MEASURE = 1.0
 
 
 class Robot:
-    def __init__(self, position, angle, *,
-                 max_sensor_range=50.0, aperture=math.pi/4.0, num_sensors=5):
+    def __init__(self, position, angle, *, range_=50.0, aperture=math.pi/4.0, num_sensors=5):
         self.position = position
         self.angle = angle
         self.radius = ROBOT_RADIUS
 
-        self.max_sensor_range = max_sensor_range
+        self.range_ = range_
         self.aperture = aperture
         self.num_sensors = num_sensors
         self.measurements = itertools.repeat(
-            self.max_sensor_range, self.num_sensors)
+            self.range_, self.num_sensors)
 
     def get_position(self):
         return self.position
@@ -68,20 +66,20 @@ class Robot:
 
         if distances is None:
             distances = itertools.repeat(
-                self.max_sensor_range, self.num_sensors)
+                self.range_, self.num_sensors)
 
         return (
             (x + math.cos(angle) * distance, y + math.sin(angle) * distance)
             for angle, distance in zip(angles, distances)
         )
 
-    def measure(self, walls):
+    def measure(self, walls, *, grid_size=20):
         measurements = []
         for sample in self.compute_sensor_points():
             intersections = (
                 geometry_utils.line_line_intersection(
-                    (wall.pos1 * GRID_SIZE, wall.pos2 *
-                     GRID_SIZE), (self.position, sample)
+                    (wall.pos1 * grid_size, wall.pos2 *
+                     grid_size), (self.position, sample)
                 ) for wall in walls
             )
             distances = (
@@ -90,14 +88,14 @@ class Robot:
             )
 
             measure = min(
-                min(distances, default=self.max_sensor_range), self.max_sensor_range)
+                min(distances, default=self.range_), self.range_)
             noise = random.gauss(0.0, SIGMA_MEASURE)
             measurements.append(measure + noise)
 
         return measurements
 
-    def update(self, walls):
-        self.measurements = self.measure(walls)
+    def update(self, walls, *, grid_size=20):
+        self.measurements = self.measure(walls, grid_size=grid_size)
 
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position
