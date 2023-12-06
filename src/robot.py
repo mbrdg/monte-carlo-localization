@@ -35,14 +35,13 @@ class Particle:
     def get_radius(self):
         return self.radius
 
-    @staticmethod
-    def likelihood(ground_thruth, measurements):
+    def likelihood(self, ground_thruth):
         def normpdf(x, mu, sigma):
             return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
 
         return math.prod(
             normpdf(measured, thruth, SIGMA_MEASURE)
-            for thruth, measured in zip(ground_thruth, measurements)
+            for thruth, measured in zip(ground_thruth, self.measurements)
         )
 
     def rotate(self, angle, *, target_angle=None, noise=None):
@@ -106,6 +105,7 @@ class Particle:
 
     def update(self, walls, *, grid_size=20):
         self.measurements = self.measure(walls, grid_size=grid_size)
+        return self.measurements
 
     @staticmethod
     def draw_robot(screen, robot, *, color=(0, 0, 0)):

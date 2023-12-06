@@ -132,14 +132,11 @@ def main() -> None:
 
         # Update
 
-        surrounding_cells, surrounding_edges = get_surrounding_cells_edges(
-            robot, my_wallmap)
-
+        surrounding_cells, surrounding_edges = get_surrounding_cells_edges(robot, my_wallmap)
         robot.update(surrounding_edges, grid_size=grid_size)
 
         for p in particles:
-            _, p_surrounding_edges = get_surrounding_cells_edges(
-                p, my_wallmap)
+            _, p_surrounding_edges = get_surrounding_cells_edges(p, my_wallmap)
             p.update(p_surrounding_edges, grid_size=grid_size)
 
         # Draw
@@ -147,7 +144,10 @@ def main() -> None:
 
         my_wallmap.draw(screen, draw_tile_debug=True)
 
-        # ground_thruth = robot.measure(surrounding_edges)
+        ground_thruth = robot.measure(surrounding_edges)
+        scores = [i, p.likelihood(ground_thruth) for i, p in enumrate(particles)].sort()
+        top_scores = scores[:SAMPLES // 10]
+
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))
 
