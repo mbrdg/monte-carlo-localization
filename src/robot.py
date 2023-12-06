@@ -122,6 +122,9 @@ class Particle:
         x, y = particle.position
         pygame.draw.circle(screen, (0, 0, 255), (x, y), particle.radius)
 
+        xr, yr = x + particle.radius * math.cos(particle.angle), y + particle.radius * math.sin(particle.angle)
+        pygame.draw.line(screen, (0, 255, 255), (x, y), (xr, yr), 3)
+
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position
         pygame.draw.circle(screen, (0, 0, 0), (x, y), Particle.RADIUS)

@@ -14,7 +14,9 @@ from consts import *
 from robot import Particle
 from settings import *
 
+
 FPS = 60
+SAMPLES = 1000
 
 
 def read_config(file_path, sim_settings_name):
@@ -70,10 +72,17 @@ def main() -> None:
 
     clock = pygame.time.Clock()
 
-    robot = Particle((width / 2.0, height / 2.0), 0, range_=sensor_range,
-                     aperture=sensor_aperture, num_sensors=num_sensors)
-    particle = Particle((50, 50), random.uniform(0, 2.0 * math.pi), range_=sensor_range,
-                        aperture=sensor_aperture, num_sensors=num_sensors)
+    particles = [
+        Particle(
+            (random.uniform(0, width), random.uniform(0, height)),
+            random.uniform(0, 2 * math.pi),
+            range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors
+        ) for _ in range(SAMPLES)
+    ]
+    robot = Particle(
+        (width / 2.0, height / 2.0), 0,
+        range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors
+    )
 
     running = True
     while running:
@@ -84,22 +93,25 @@ def main() -> None:
         pressed_keys = pygame.key.get_pressed()
 
         robot_next_position = robot.get_position()
-        particle_next_position = particle.get_position()
+        next_positions = [p.get_position() for p in particles]
 
         if pressed_keys[pygame.K_w]:
             robot_next_position, mnoise = robot.move(1, position=robot_next_position)
-            particle_next_position, _ = particle.move(1, noise=mnoise)
+            next_positions = [p.move(1, noise=mnoise)[0] for p in particles] 
 
         if pressed_keys[pygame.K_a]:
             _, lnoise = robot.rotate(math.radians(-1.5))
-            particle.rotate(math.radians(-1.5), noise=lnoise)
+            for p in particles:
+                p.rotate(math.radians(-1.5), noise=lnoise)
         if pressed_keys[pygame.K_d]:
             _, rnoise = robot.rotate(math.radians(1.5))
-            particle.rotate(math.radians(1.5), noise=rnoise)
+            for p in particles:
+                p.rotate(math.radians(-1.5), noise=rnoise)
 
         if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
-            particle.apply_move(particle_next_position)
+            for p, position in zip(particles, next_positions):
+                p.apply_move(position)
 
         # Update
 
@@ -126,7 +138,8 @@ def main() -> None:
         # print(Particle.likelihood(ground_thruth, particle_measurements))
 
         Particle.draw_robot(screen, robot)
-        Particle.draw_particle(screen, particle)
+        for p in particles:
+            Particle.draw_particle(screen, p)
 
         for key, _ in surrounding_cells:
             cell_x, cell_y = key.split(';')
