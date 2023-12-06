@@ -7,29 +7,43 @@ import pygame
 
 import geometry_utils
 
-ROBOT_RADIUS = 10
 SIGMA_MOVE = .5
 SIGMA_ROTATE = math.radians(.3)
 SIGMA_MEASURE = 1.0
 
 
-class Robot:
-    def __init__(self, position, angle, *, range_=50.0, aperture=math.pi/4.0, num_sensors=5):
+class Particle:
+    RADIUS = 10
+
+    def __init__(self, position, angle, *,
+                 range_=50.0, aperture=math.pi/4.0, num_sensors=5):
         self.position = position
         self.angle = angle
-        self.radius = ROBOT_RADIUS
+        self.radius = Particle.RADIUS
 
         self.range_ = range_
         self.aperture = aperture
         self.num_sensors = num_sensors
-        self.measurements = itertools.repeat(
-            self.range_, self.num_sensors)
+        self.measurements = itertools.repeat(self.range_, self.num_sensors)
 
     def get_position(self):
         return self.position
 
     def get_angle(self):
         return self.angle
+
+    def get_radius(self):
+        return self.radius
+
+    @staticmethod
+    def likelihood(ground_thruth, measurements):
+        def normpdf(x, mu, sigma):
+            return math.exp(- 0.5 * ((x - mu) / sigma) ** 2.0) / (sigma * math.sqrt(2 * math.pi))
+
+        return math.prod(
+            normpdf(measured, thruth, SIGMA_MEASURE)
+            for thruth, measured in zip(ground_thruth, measurements)
+        )
 
     def rotate(self, angle=math.radians(15), *, target_angle=None):
         angle = angle + random.gauss(0, SIGMA_ROTATE)
@@ -45,15 +59,11 @@ class Robot:
     def apply_rotation(self, angle):
         self.angle = angle
 
-    def move(self, speed=10, *, position=None):
-        if position is None:
-            position = self.position
+    def move(self, speed=10):
+        x, y = self.position
+        speed += random.gauss(0, SIGMA_MOVE)
 
-        speed = speed + random.gauss(0, SIGMA_MOVE)
-        position[0] += speed * math.cos(self.angle)
-        position[1] += speed * math.sin(self.angle)
-
-        return position
+        return (x + speed * math.cos(self.angle), y + speed * math.sin(self.angle))
 
     def apply_move(self, position):
         self.position = position
@@ -78,8 +88,7 @@ class Robot:
         for sample in self.compute_sensor_points():
             intersections = (
                 geometry_utils.line_line_intersection(
-                    (wall.pos1 * grid_size, wall.pos2 *
-                     grid_size), (self.position, sample)
+                    (wall.pos1 * grid_size, wall.pos2 * grid_size), (self.position, sample)
                 ) for wall in walls
             )
             distances = (
@@ -99,10 +108,9 @@ class Robot:
 
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position
-        pygame.draw.circle(screen, (0, 0, 0), (x, y), ROBOT_RADIUS)
+        pygame.draw.circle(screen, (0, 0, 0), (x, y), Particle.RADIUS)
 
-        xr, yr = x + self.radius * \
-            math.cos(self.angle), y + self.radius * math.sin(self.angle)
+        xr, yr = x + self.radius * math.cos(self.angle), y + self.radius * math.sin(self.angle)
         pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
 
         points = []
@@ -122,5 +130,4 @@ class Robot:
         if draw_measurements:
             # draw measurements
             for i in range(0, len(points)-1):
-                pygame.draw.line(screen, (0, 255, 0), points[i],
-                                 points[i+1], 3)
+                pygame.draw.line(screen, (0, 255, 0), points[i], points[i+1], 3)

@@ -1,7 +1,6 @@
 # main.py
 import argparse
 import configparser
-import copy
 import math
 import sys
 from itertools import chain
@@ -11,7 +10,7 @@ import pygame
 import map_gen
 import wallmap
 from consts import *
-from robot import Robot
+from robot import Particle
 from settings import *
 
 FPS = 60
@@ -71,8 +70,10 @@ def main() -> None:
 
     clock = pygame.time.Clock()
 
-    robot = Robot([width//2, height//2], 0, range_=sensor_range,
-                  aperture=sensor_aperture, num_sensors=num_sensors)
+    robot = Particle((width / 2.0, height / 2.0), 0, range_=sensor_range,
+                     aperture=sensor_aperture, num_sensors=num_sensors)
+    particle = Particle((50, 50), 0, range_=sensor_range,
+                        aperture=sensor_aperture, num_sensors=num_sensors)
 
     running = True
     while running:
@@ -81,17 +82,24 @@ def main() -> None:
                 running = False
 
         pressed_keys = pygame.key.get_pressed()
-        new_position = copy.deepcopy(robot.get_position())
+        robot_next_position = robot.get_position()
+        particle_next_position = particle.get_position()
 
         if pressed_keys[pygame.K_w]:
-            new_position = robot.move(1, position=new_position)
+            robot_next_position = robot.move(1)
+            particle_next_position = particle.move(1)
+
         if pressed_keys[pygame.K_a]:
             robot.rotate(math.radians(-1.5))
+            particle.rotate(math.radians(-1.5))
         if pressed_keys[pygame.K_d]:
             robot.rotate(math.radians(1.5))
+            particle.rotate(math.radians(1.5))
 
-        if not my_wallmap.robot_has_collision(new_position, robot.radius):
-            robot.apply_move(new_position)
+        if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
+            robot.apply_move(robot_next_position)
+        if not my_wallmap.robot_has_collision(particle_next_position, particle.get_radius()):
+            particle.apply_move(particle_next_position)
 
         # Update
 
@@ -107,7 +115,12 @@ def main() -> None:
 
         my_wallmap.draw(screen, draw_tile_debug=True)
 
+        ground_thruth = robot.measure(surrounding_edges)
+        particle_measurements = particle.measure(surrounding_edges)
+        print(Particle.likelihood(ground_thruth, particle_measurements))
+
         robot.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
+        particle.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
 
         for key, _ in surrounding_cells:
             cell_x, cell_y = key.split(';')
