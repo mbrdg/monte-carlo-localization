@@ -16,8 +16,9 @@ from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 100
+SAMPLES = 200
 SPEED = 3
+ROT_SPEED = 5
 
 
 def read_config(file_path, sim_settings_name):
@@ -122,22 +123,28 @@ def main() -> None:
         robot_next_position = robot.get_position()
         next_positions = [p.get_position() for p in particles]
 
+        speed = SPEED
+        rot_speed = ROT_SPEED
+
         if pressed_keys[pygame.K_w]:
+
+            if pressed_keys[pygame.K_LSHIFT]:
+                speed *= 2
+                rot_speed *= 3
+
             robot_next_position, mnoise = robot.move(
-                SPEED, position=robot_next_position)
-            next_positions = [p.move(SPEED, noise=mnoise)[0]
+                speed, position=robot_next_position)
+            next_positions = [p.move(speed, noise=mnoise)[0]
                               for p in particles]
 
-        ROT_SPEED = 5
-
         if pressed_keys[pygame.K_a]:
-            _, lnoise = robot.rotate(math.radians(-ROT_SPEED))
+            _, lnoise = robot.rotate(math.radians(-rot_speed))
             for p in particles:
-                p.rotate(math.radians(-ROT_SPEED), noise=lnoise)
+                p.rotate(math.radians(-rot_speed), noise=lnoise)
         if pressed_keys[pygame.K_d]:
-            _, rnoise = robot.rotate(math.radians(ROT_SPEED))
+            _, rnoise = robot.rotate(math.radians(rot_speed))
             for p in particles:
-                p.rotate(math.radians(ROT_SPEED), noise=rnoise)
+                p.rotate(math.radians(rot_speed), noise=rnoise)
 
         if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
@@ -193,8 +200,10 @@ def main() -> None:
             generated_particle_positions = generate_particle_positions(np.array(
                 [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
 
+            top_rotations = [particles[i].get_angle() for i, _ in top_scores]
+
             particles = [particles[i] for i, _ in top_scores]
-            particles.extend([Particle(position, random.uniform(0, 2 * math.pi),
+            particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
                                        range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
 
         # particle_measurements = particle.measure(surrounding_edges)
