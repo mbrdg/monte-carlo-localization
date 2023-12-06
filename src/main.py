@@ -135,7 +135,7 @@ def main() -> None:
 
     clock = pygame.time.Clock()
 
-    robot = Robot([WIDTH//2, HEIGHT//2], 0)
+    robot = Robot([WIDTH//2, HEIGHT//2], 0, aperture=math.pi/2, num_sensors=20)
 
     running = True
     while running:
@@ -173,9 +173,9 @@ def main() -> None:
         my_wallmap.draw(screen)
         my_wallmap.draw_obstacles(screen)
 
-        robot.draw(screen, draw_sensor_ranges=True, draw_measurements=True)
+        robot.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
 
-        for key, cell in surrounding_cells:
+        for key, _ in surrounding_cells:
             cell_x, cell_y = key.split(';')
             cell_x = int(cell_x) * grid_size
             cell_y = int(cell_y) * grid_size

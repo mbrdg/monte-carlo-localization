@@ -4,8 +4,8 @@ import random
 
 import numpy as np
 import pygame
-from shapely.geometry import LineString
 
+import geometry_utils
 from settings import *
 
 ROBOT_RADIUS = 10
@@ -75,19 +75,11 @@ class Robot:
             for angle, distance in zip(angles, distances)
         )
 
-    @staticmethod
-    def intersects(line1, line2):
-        line1 = LineString(line1)
-        line2 = LineString(line2)
-
-        res = line1.intersection(line2)
-        return (res.x, res.y) if res.geom_type == "Point" else None
-
     def measure(self, walls):
         measurements = []
         for sample in self.compute_sensor_points():
             intersections = (
-                Robot.intersects(
+                geometry_utils.line_line_intersection(
                     (wall.pos1 * GRID_SIZE, wall.pos2 *
                      GRID_SIZE), (self.position, sample)
                 ) for wall in walls
