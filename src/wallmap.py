@@ -129,3 +129,102 @@ class Wallmap:
                         if geometry_utils.circle_line_collision(edge.pos1 * self.grid_size, edge.pos2 * self.grid_size, robot_pos, robot_radius):
                             return True
         return False
+
+    def get_surrounding_cells_range(self, pos, range_):
+
+        surrounding_cells = []
+
+        grid_pos = [math.floor(pos[0] / self.grid_size),
+                    math.floor(pos[1] / self.grid_size)]
+        grid_range = math.ceil(range_ / self.grid_size)
+
+        for x_offset in range(-grid_range, grid_range+1):
+            for y_offset in range(-grid_range, grid_range+1):
+                # check if x, y is inside borders
+
+                x = grid_pos[0] + x_offset
+                y = grid_pos[1] + y_offset
+
+                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                    continue
+
+                if f'{x};{y}' in self.tilemap:
+                    surrounding_cells.append((
+                        f'{x};{y}', self.tilemap[f'{x};{y}']))
+
+        return surrounding_cells
+
+    def get_surrounding_cells_aperture(self, pos, range_, angle, aperture=math.pi):
+
+        def sign_0(a): return 1 if a > 0 else -1 if a < 0 else 0
+
+        surrounding_cells = []
+
+        grid_pos = [math.floor(pos[0] / self.grid_size),
+                    math.floor(pos[1] / self.grid_size)]
+        grid_range = math.ceil(range_ / self.grid_size)
+
+        most_dist = [
+            round(math.cos(angle) * grid_range),
+            round(math.sin(angle) * grid_range)
+        ]
+
+        most_dist_aperture_min = [
+            round(math.cos(angle - aperture/2)
+                  * grid_range),
+            round(math.sin(angle - aperture/2)
+                  * grid_range)
+        ]
+
+        most_dist_aperture_max = [
+            round(math.cos(angle + aperture/2)
+                  * grid_range),
+            round(math.sin(angle + aperture/2)
+                  * grid_range)
+        ]
+
+        x_aperture_min = (0-sign_0(most_dist[0]),
+                          most_dist[0] + most_dist_aperture_min[0])
+        y_aperture_min = (0-sign_0(most_dist[1]),
+                          most_dist[1] + most_dist_aperture_min[1])
+
+        x_aperture_max = (0-sign_0(most_dist[0]),
+                          most_dist[0] + most_dist_aperture_max[0])
+        y_aperture_max = (0-sign_0(most_dist[1]),
+                          most_dist[1] + most_dist_aperture_max[1])
+
+        x_range = (0-sign_0(most_dist[0]), most_dist[0] +
+                   sign_0(most_dist[0]))
+        y_range = (0-sign_0(most_dist[1]), most_dist[1] +
+                   sign_0(most_dist[1]))
+
+        min_x = min((min(x_aperture_min), min(x_aperture_max), min(x_range)))
+        max_x = max((max(x_aperture_min), max(x_aperture_max), max(x_range)))
+
+        min_y = min((min(y_aperture_min), min(y_aperture_max), min(y_range)))
+        max_y = max((max(y_aperture_min), max(y_aperture_max), max(y_range)))
+
+        for x_offset in range(min_x, max_x+1):
+            for y_offset in range(min_y, max_y+1):
+                # check if x, y is inside borders
+
+                x = grid_pos[0] + x_offset
+                y = grid_pos[1] + y_offset
+
+                if x < 0 or x >= WIDTH // self.grid_size or y < 0 or y >= HEIGHT // self.grid_size:
+                    continue
+
+                if f'{x};{y}' in self.tilemap:
+                    surrounding_cells.append((
+                        f'{x};{y}', self.tilemap[f'{x};{y}']))
+
+        return surrounding_cells
+
+    def get_surrounding_cells(self, pos, *, mode='aperture', **kwargs):
+        if mode == 'aperture':
+            return self.get_surrounding_cells_aperture(pos, **kwargs)
+        elif mode == 'range':
+            return self.get_surrounding_cells_range(pos, **kwargs)
+        else:
+            raise ValueError(
+                f'Invalid mode {mode} for get_surrounding_cells()')
