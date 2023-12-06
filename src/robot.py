@@ -45,8 +45,9 @@ class Particle:
             for thruth, measured in zip(ground_thruth, measurements)
         )
 
-    def rotate(self, angle=math.radians(15), *, target_angle=None):
-        angle = angle + random.gauss(0, SIGMA_ROTATE)
+    def rotate(self, angle, *, target_angle=None, noise=None):
+        noise = random.gauss(0, SIGMA_ROTATE) if noise is None else noise
+        angle = angle + noise
 
         if target_angle is None:
             self.angle += angle
@@ -54,16 +55,17 @@ class Particle:
         else:
             target_angle += self.angle
 
-        return target_angle
+        return (target_angle, noise)
 
     def apply_rotation(self, angle):
         self.angle = angle
 
-    def move(self, speed=10):
-        x, y = self.position
-        speed += random.gauss(0, SIGMA_MOVE)
+    def move(self, speed, *, position=None, noise=None):
+        x, y = self.position if position is None else position
+        noise = random.gauss(0, SIGMA_MOVE) if noise is None else noise
+        speed += noise
 
-        return (x + speed * math.cos(self.angle), y + speed * math.sin(self.angle))
+        return ((x + speed * math.cos(self.angle), y + speed * math.sin(self.angle)), noise)
 
     def apply_move(self, position):
         self.position = position
@@ -75,8 +77,7 @@ class Particle:
         angles = np.linspace(start_angle, stop_angle, num=self.num_sensors)
 
         if distances is None:
-            distances = itertools.repeat(
-                self.range_, self.num_sensors)
+            distances = itertools.repeat(self.range_, self.num_sensors)
 
         return (
             (x + math.cos(angle) * distance, y + math.sin(angle) * distance)
@@ -96,8 +97,7 @@ class Particle:
                 for point in intersections if point is not None
             )
 
-            measure = min(
-                min(distances, default=self.range_), self.range_)
+            measure = min(min(distances, default=self.range_), self.range_)
             noise = random.gauss(0.0, SIGMA_MEASURE)
             measurements.append(measure + noise)
 
@@ -105,6 +105,22 @@ class Particle:
 
     def update(self, walls, *, grid_size=20):
         self.measurements = self.measure(walls, grid_size=grid_size)
+
+    @staticmethod
+    def draw_robot(screen, robot):
+        x, y = robot.position
+        pygame.draw.circle(screen, (0, 0, 0), (x, y), robot.radius)
+
+        xr, yr = x + robot.radius * math.cos(robot.angle), y + robot.radius * math.sin(robot.angle)
+        pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
+
+        points = tuple(robot.compute_sensor_points(robot.measurements))
+        pygame.draw.lines(screen, (0, 255, 0), False, points, 3)
+
+    @staticmethod
+    def draw_particle(screen, particle):
+        x, y = particle.position
+        pygame.draw.circle(screen, (0, 0, 255), (x, y), particle.radius)
 
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):
         x, y = self.position

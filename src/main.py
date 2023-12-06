@@ -2,6 +2,7 @@
 import argparse
 import configparser
 import math
+import random
 import sys
 from itertools import chain
 
@@ -20,13 +21,12 @@ def read_config(file_path, sim_settings_name):
     config = configparser.ConfigParser()
     config.read(file_path)
 
-    width, height = config.getint('EnvironmentSettings', 'window_width'), config.getint(
-        'EnvironmentSettings', 'window_height')
+    width = config.getint('EnvironmentSettings', 'window_width')
+    height = config.getint('EnvironmentSettings', 'window_height')
     grid_size = config.getint('EnvironmentSettings', 'grid_size')
 
     sensor_range = config.getint(sim_settings_name, 'sensor_range')
-    sensor_aperture = math.radians(config.getint(
-        sim_settings_name, 'sensor_aperture'))
+    sensor_aperture = math.radians(config.getint(sim_settings_name, 'sensor_aperture'))
     num_sensors = config.getint(sim_settings_name, 'num_sensors')
 
     return {
@@ -72,7 +72,7 @@ def main() -> None:
 
     robot = Particle((width / 2.0, height / 2.0), 0, range_=sensor_range,
                      aperture=sensor_aperture, num_sensors=num_sensors)
-    particle = Particle((50, 50), 0, range_=sensor_range,
+    particle = Particle((50, 50), random.uniform(0, 2.0 * math.pi), range_=sensor_range,
                         aperture=sensor_aperture, num_sensors=num_sensors)
 
     running = True
@@ -82,29 +82,35 @@ def main() -> None:
                 running = False
 
         pressed_keys = pygame.key.get_pressed()
+
         robot_next_position = robot.get_position()
         particle_next_position = particle.get_position()
 
         if pressed_keys[pygame.K_w]:
-            robot_next_position = robot.move(1)
-            particle_next_position = particle.move(1)
+            robot_next_position, mnoise = robot.move(1, position=robot_next_position)
+            particle_next_position, _ = particle.move(1, noise=mnoise)
 
         if pressed_keys[pygame.K_a]:
-            robot.rotate(math.radians(-1.5))
-            particle.rotate(math.radians(-1.5))
+            _, lnoise = robot.rotate(math.radians(-1.5))
+            particle.rotate(math.radians(-1.5), noise=lnoise)
         if pressed_keys[pygame.K_d]:
-            robot.rotate(math.radians(1.5))
-            particle.rotate(math.radians(1.5))
+            _, rnoise = robot.rotate(math.radians(1.5))
+            particle.rotate(math.radians(1.5), noise=rnoise)
 
         if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
-        if not my_wallmap.robot_has_collision(particle_next_position, particle.get_radius()):
             particle.apply_move(particle_next_position)
 
         # Update
 
-        surrounding_cells = my_wallmap.get_surrounding_cells(robot.get_position(), mode='aperture',
-                                                             range_=robot.range_, angle=robot.get_angle(), aperture=robot.aperture*1.2)
+        surrounding_cells = my_wallmap.get_surrounding_cells(
+            robot.get_position(),
+            mode='aperture',
+            range_=robot.range_, 
+            angle=robot.get_angle(),
+            aperture=robot.aperture*1.2
+        )
+
         surrounding_edges = [cell for _, cell in surrounding_cells]
         surrounding_edges = set(chain(*surrounding_edges))
 
@@ -115,12 +121,12 @@ def main() -> None:
 
         my_wallmap.draw(screen, draw_tile_debug=True)
 
-        ground_thruth = robot.measure(surrounding_edges)
-        particle_measurements = particle.measure(surrounding_edges)
-        print(Particle.likelihood(ground_thruth, particle_measurements))
+        # ground_thruth = robot.measure(surrounding_edges)
+        # particle_measurements = particle.measure(surrounding_edges)
+        # print(Particle.likelihood(ground_thruth, particle_measurements))
 
-        robot.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
-        particle.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
+        Particle.draw_robot(screen, robot)
+        Particle.draw_particle(screen, particle)
 
         for key, _ in surrounding_cells:
             cell_x, cell_y = key.split(';')
