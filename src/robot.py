@@ -81,59 +81,17 @@ class Robot:
 
         return None
 
-        xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
-        ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
-
-        def det(a, b):
-            return a[0] * b[1] - a[1] * b[0]
-
-        div = det(xdiff, ydiff)
-        if div == 0:
-            return None
-
-        d = (det(*line1), det(*line2))
-        x = det(d, xdiff) / div
-        y = det(d, ydiff) / div
-        return x, y
-
     def measure(self, walls):
         measurements = []
         for sample in self.compute_sensor_points():
 
-            # wall_0 = list(walls)[0]
-            # wall_p1, wall_p2 = wall_0.pos1 * GRID_SIZE, wall_0.pos2 * GRID_SIZE
-            #
-            # intersection = Robot.line_line_intersection(
-            #    (wall_p1, wall_p2), (self.position, sample))
-            #
-            # print(
-            #    f'Wall: {wall_p1}, {wall_p2}, Robot: {self.position}, {sample}')
-            #
-            # if intersection is not None:
-            #    print('INTERSECTION ', intersection)
-            #
-            # measure = math.dist(self.position, intersection)
-            #
-            # return [measure]
-            #
-            # continue
+            intersections = (Robot.line_line_intersection(
+                (wall.pos1*GRID_SIZE, wall.pos2*GRID_SIZE), (self.position, sample)) for wall in walls)
 
-            walls = list(walls)
+            distances = (math.dist(self.position, point) if point is not None else self.max_sensor_range
+                         for point in intersections)
 
-            intersections = [Robot.line_line_intersection(
-                (wall.pos1*GRID_SIZE, wall.pos2*GRID_SIZE), (self.position, sample)) for wall in walls]
-
-            distances = [math.dist(self.position, point) if point is not None else self.max_sensor_range
-                         for point in intersections]
-
-            dist_i = np.argmin(distances)
-
-            # print(
-            #    f'Wall: {walls[dist_i].pos1*GRID_SIZE}, {walls[dist_i].pos2*GRID_SIZE}, Robot: {self.position}, {sample}')
-            measure = distances[dist_i]
-
-            # print('INTERSECTION ', intersections[dist_i])
-            # print('MEASURE ', measure)
+            measure = min(distances)
 
             if measure > self.max_sensor_range:
                 measure = self.max_sensor_range
