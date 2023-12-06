@@ -377,42 +377,20 @@ def main() -> None:
 
     robot = Robot([WIDTH//2, HEIGHT//2], 0)
 
-    keys_pressed = {
-        'w': False,
-        'a': False,
-        'd': False
-    }
-
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            elif event.type == pygame.KEYDOWN:
-
-                if event.key == pygame.K_w:
-                    keys_pressed['w'] = True
-                elif event.key == pygame.K_a:
-                    keys_pressed['a'] = True
-                elif event.key == pygame.K_d:
-                    keys_pressed['d'] = True
-            elif event.type == pygame.KEYUP:
-
-                if event.key == pygame.K_w:
-                    keys_pressed['w'] = False
-                elif event.key == pygame.K_a:
-                    keys_pressed['a'] = False
-                elif event.key == pygame.K_d:
-                    keys_pressed['d'] = False
-
+        pressed_keys = pygame.key.get_pressed()
         new_position = copy.deepcopy(robot.get_position())
 
-        if keys_pressed['w']:
+        if pressed_keys[pygame.K_w]:
             new_position = robot.move(1, position=new_position)
-        if keys_pressed['a']:
+        if pressed_keys[pygame.K_a]:
             robot.rotate(math.radians(-1.5))
-        if keys_pressed['d']:
+        if pressed_keys[pygame.K_d]:
             robot.rotate(math.radians(1.5))
 
         if not my_wallmap.robot_has_collision(new_position, robot.radius):
