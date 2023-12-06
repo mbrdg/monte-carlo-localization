@@ -157,9 +157,7 @@ def main() -> None:
         # Draw
         screen.fill(WHITE)
 
-        my_wallmap.draw_tile_debug(screen)
-        my_wallmap.draw(screen)
-        my_wallmap.draw_obstacles(screen)
+        my_wallmap.draw(screen, draw_tile_debug=True)
 
         robot.draw(screen, draw_sensor_ranges=False, draw_measurements=True)
 

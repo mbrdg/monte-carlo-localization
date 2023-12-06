@@ -74,7 +74,7 @@ class Wallmap:
 
         self.obstacles.append(obstacle)
 
-    def draw(self, screen):
+    def draw_walls(self, screen):
         for edge in self.gridmap.values():
             draw_pos1 = edge.pos1 * self.grid_size
             draw_pos2 = edge.pos2 * self.grid_size
@@ -90,6 +90,22 @@ class Wallmap:
 
             # Use Pygame to draw the filled polygon representing the obstacle
             pygame.draw.polygon(screen, obstacle.color, points)
+
+    def draw_tile_debug(self, screen):
+        # represent tiles in tilemap as red rectangles, with increasing intensity for each edge
+        for tile in self.tilemap:
+            tile_pos = np.array([int(x) for x in tile.split(';')])
+            intensity = (len(self.edges) -
+                         len(self.tilemap[tile]))/len(self.edges)
+            intensity = intensity**4
+            pygame.draw.rect(screen, (255, int(intensity*255), int(intensity*255)), pygame.Rect(
+                tile_pos * self.grid_size, (self.grid_size, self.grid_size)))
+
+    def draw(self, screen, *, draw_tile_debug=False):
+        if draw_tile_debug:
+            self.draw_tile_debug(screen)
+        self.draw_walls(screen)
+        self.draw_obstacles(screen)
 
     def robot_has_collision(self, robot_pos, robot_radius):
 
@@ -113,13 +129,3 @@ class Wallmap:
                         if geometry_utils.circle_line_collision(edge.pos1 * self.grid_size, edge.pos2 * self.grid_size, robot_pos, robot_radius):
                             return True
         return False
-
-    def draw_tile_debug(self, screen):
-        # represent tiles in tilemap as red rectangles, with increasing intensity for each edge
-        for tile in self.tilemap:
-            tile_pos = np.array([int(x) for x in tile.split(';')])
-            intensity = (len(self.edges) -
-                         len(self.tilemap[tile]))/len(self.edges)
-            intensity = intensity**4
-            pygame.draw.rect(screen, (255, int(intensity*255), int(intensity*255)), pygame.Rect(
-                tile_pos * self.grid_size, (self.grid_size, self.grid_size)))
