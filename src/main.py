@@ -22,7 +22,7 @@ FPS = 24
 SAMPLES = 200
 SPEED = 3
 ROT_SPEED = 5
-GEN_VARIANCE = 100
+GEN_VARIANCE = 1000
 
 
 class Game:
@@ -59,9 +59,15 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[0], 0,
+            self.robot_start_positions[1], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
         )
+
+        self.gen_variance_max = 10000
+        self.gen_variance_min = 1
+        self.likelihood_max = self.num_sensors * self.sensor_range
+
+        print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Likelihood max {self.likelihood_max}")
 
     def get_surrounding_cells_edges(self, particle):
         surrounding_cells = self.my_wallmap.get_surrounding_cells(
@@ -103,60 +109,71 @@ class Game:
     
     def generate_particles(self, particles, robot_measure):
             
-            width, height = self.width, self.height
+        width, height = self.width, self.height
+
+        for p in particles:
+            _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
+            p.update(p_surrounding_edges, grid_size=self.grid_size)
+
+        ground_thruth = robot_measure
+        scores = [(i, p.likelihood(ground_thruth))
+                for i, p in enumerate(particles)]
+        scores_avg = np.mean([score for _, score in scores])
+        scores = [(i, score/scores_avg) for i, score in scores]
+        scores.sort(key=lambda x: x[1], reverse=True)
+        top_scores = scores[:(len(particles) // 10)]
+
+        x, y = np.meshgrid(np.arange(width), np.arange(height))
+        density_map = np.zeros((height, width))
+
     
-            for p in particles:
-                _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
-                p.update(p_surrounding_edges, grid_size=self.grid_size)
+
+        # calculate variance according to limits and avg scores
     
-            ground_thruth = robot_measure
-            scores = [(i, p.likelihood(ground_thruth))
-                    for i, p in enumerate(particles)]
-            scores_avg = np.mean([score for _, score in scores])
-            scores = [(i, score/scores_avg) for i, score in scores]
-            scores.sort(key=lambda x: x[1], reverse=True)
-            top_scores = scores[:(len(particles) // 10)]
-    
-            x, y = np.meshgrid(np.arange(width), np.arange(height))
-            density_map = np.zeros((height, width))
-    
+        gen_variance = (self.gen_variance_max - self.gen_variance_min) * \
+            (1 - ((scores_avg) / self.likelihood_max))**2 + self.gen_variance_min
             
-    
-            for i, weight in top_scores:
-                density_map += weight * \
-                    self.gaussian_distribution(
-                        x, y, particles[i].get_position(), GEN_VARIANCE)
-    
-            density_map /= np.sum(density_map)
-    
-            # if density map has Nan values, skip
-    
-            if not np.isnan(density_map).any():
-    
-                num_generated_particles = (len(particles) - len(top_scores))
-    
-                if (len(particles) > 20):
-                    deductive = (len(particles) - len(top_scores)) * 0.95
-                    if deductive <= 0:
-                        deductive = 1
-                    num_generated_particles = round(deductive)
-    
-                print("Total particles: ", len(particles))
-                generated_particle_positions = self.generate_particle_positions(np.array(
-                    [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
-    
-                top_rotations = [particles[i].get_angle() for i, _ in top_scores]
-    
-                (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
-                rot_mean = rot_mean % (math.pi*2)
-    
-                new_particles = [particles[i] for i, _ in top_scores]
-                new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
-                                            range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions])
-            else:
-                new_particles = particles
-    
-            return new_particles
+
+        for i, weight in top_scores:
+            density_map += weight * \
+                self.gaussian_distribution(
+                    x, y, particles[i].get_position(), gen_variance)
+
+        density_map /= np.sum(density_map)
+
+        # if density map has Nan values, skip
+
+        
+
+        if not np.isnan(density_map).any():
+
+            num_generated_particles = (len(particles) - len(top_scores))
+
+            if (len(particles) > 20):
+                deductive = (len(particles) - len(top_scores)) * 0.95
+                if deductive <= 0:
+                    deductive = 1
+                num_generated_particles = round(deductive)
+
+            
+            generated_particle_positions = self.generate_particle_positions(np.array(
+                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
+
+            top_rotations = [particles[i].get_angle() for i, _ in top_scores]
+
+            (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
+            rot_mean = rot_mean % (math.pi*2)
+            rot_variance = rot_variance * (self.likelihood_max / scores_avg)
+
+            new_particles = [particles[i] for i, _ in top_scores]
+            new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
+                                        range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions])
+        else:
+            new_particles = particles
+
+        print(f"Total particles {len(particles)} ; Scores svg {scores_avg} ; Variance {gen_variance}")
+
+        return new_particles
     
     def run(self):
         running = True
