@@ -68,6 +68,59 @@ def generate_particle_positions(positions, weights, num_particles):
     particles = positions[particle_indices]
     return particles
 
+# TODO make the main function class game to have this come from self
+
+
+def generate_particles(particles, robot, surrounding_edges, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
+
+    width, height = dimensions
+
+    for p in particles:
+        _, p_surrounding_edges = get_surrounding_cells_edges(p, my_wallmap)
+        p.update(p_surrounding_edges, grid_size=grid_size)
+
+    ground_thruth = robot.measure(surrounding_edges)
+    scores = [(i, p.likelihood(ground_thruth))
+              for i, p in enumerate(particles)]
+    scores.sort(key=lambda x: x[1], reverse=True)
+    top_scores = scores[:(len(particles) // 5)]
+
+    x, y = np.meshgrid(np.arange(width), np.arange(height))
+    density_map = np.zeros((height, width))
+
+    VARIANCE = 1000
+
+    for i, weight in top_scores:
+        density_map += weight * \
+            gaussian_distribution(
+                x, y, particles[i].get_position(), VARIANCE)
+
+    density_map /= np.sum(density_map)
+
+    # if density map has Nan values, skip
+
+    if not np.isnan(density_map).any():
+
+        num_generated_particles = (len(particles) - len(top_scores))
+
+        if (len(particles) > 20):
+            deductive = (len(particles) - len(top_scores)) * 0.9
+            if deductive <= 0:
+                deductive = 1
+            num_generated_particles = round(deductive)
+
+        print(num_generated_particles)
+        generated_particle_positions = generate_particle_positions(np.array(
+            [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
+
+        top_rotations = [particles[i].get_angle() for i, _ in top_scores]
+
+        particles = [particles[i] for i, _ in top_scores]
+        particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
+                                   range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
+
+    return particles
+
 
 def main() -> None:
 
@@ -151,60 +204,22 @@ def main() -> None:
             for p, position in zip(particles, next_positions):
                 p.apply_move(position)
 
+        # Clear
+
+        screen.fill(WHITE)
+
         # Update
 
         surrounding_cells, surrounding_edges = get_surrounding_cells_edges(
             robot, my_wallmap)
         robot.update(surrounding_edges, grid_size=grid_size)
 
-        for p in particles:
-            _, p_surrounding_edges = get_surrounding_cells_edges(p, my_wallmap)
-            p.update(p_surrounding_edges, grid_size=grid_size)
+        particles = generate_particles(particles, robot, surrounding_edges, my_wallmap, (width, height),
+                                       grid_size, sensor_range, sensor_aperture, num_sensors)
 
         # Draw
-        screen.fill(WHITE)
 
         my_wallmap.draw(screen, draw_tile_debug=True)
-
-        ground_thruth = robot.measure(surrounding_edges)
-        scores = [(i, p.likelihood(ground_thruth))
-                  for i, p in enumerate(particles)]
-        scores.sort(key=lambda x: x[1], reverse=True)
-        top_scores = scores[:(len(particles) // 5)]
-
-        x, y = np.meshgrid(np.arange(width), np.arange(height))
-        density_map = np.zeros((height, width))
-
-        VARIANCE = 1000
-
-        for i, weight in top_scores:
-            density_map += weight * \
-                gaussian_distribution(
-                    x, y, particles[i].get_position(), VARIANCE)
-
-        density_map /= np.sum(density_map)
-
-        # if density map has Nan values, skip
-
-        if not np.isnan(density_map).any():
-
-            num_generated_particles = (len(particles) - len(top_scores))
-
-            if (len(particles) > 20):
-                deductive = (len(particles) - len(top_scores)) * 0.9
-                if deductive <= 0:
-                    deductive = 1
-                num_generated_particles = round(deductive)
-
-            print(num_generated_particles)
-            generated_particle_positions = generate_particle_positions(np.array(
-                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
-
-            top_rotations = [particles[i].get_angle() for i, _ in top_scores]
-
-            particles = [particles[i] for i, _ in top_scores]
-            particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
-                                       range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
 
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))
