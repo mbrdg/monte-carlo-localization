@@ -70,11 +70,28 @@ def generate_particle_positions(positions, weights, num_particles):
         len(positions), size=num_particles, p=weights/np.sum(weights))
     particles = positions[particle_indices]
     return particles
+    
+
+def fit_normal(values, weights):
+    
+    # prepare
+    values = np.array(values)
+    weights = np.array(weights)
+        
+    # estimate mean
+    weights_sum =  weights.sum()
+    mean = (values*weights).sum() / weights_sum
+   
+    # estimate variance
+    errors = (values-mean)**2
+    variance = (errors*weights).sum() / weights_sum
+        
+    return (mean, variance)
 
 # TODO make the main function class game to have this come from self
 
 
-def generate_particles(particles, robot_measure, surrounding_edges, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
+def generate_particles(particles, robot_measure, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
 
     width, height = dimensions
 
@@ -118,8 +135,11 @@ def generate_particles(particles, robot_measure, surrounding_edges, my_wallmap, 
 
         top_rotations = [particles[i].get_angle() for i, _ in top_scores]
 
+        (rot_mean, rot_variance) = fit_normal(top_rotations, [score for _, score in top_scores])
+        rot_mean = rot_mean % (math.pi*2)
+
         new_particles = [particles[i] for i, _ in top_scores]
-        new_particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
+        new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
                                        range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
     else:
         new_particles = particles
@@ -192,7 +212,7 @@ def main() -> None:
     ]
 
     robot = Particle(
-        robot_start_positions[1], 0,
+        robot_start_positions[0], 0,
         range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors
     )
 
@@ -261,7 +281,7 @@ def main() -> None:
         #    particle_gen_thread = None
         # Draw
 
-        particles = generate_particles(particles, robot_measure, surrounding_edges, my_wallmap,
+        particles = generate_particles(particles, robot_measure, my_wallmap,
                                        (width, height), grid_size, sensor_range, sensor_aperture, num_sensors)
 
         my_wallmap.draw(screen, draw_tile_debug=True)
