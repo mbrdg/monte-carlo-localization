@@ -232,7 +232,7 @@ def main() -> None:
             for p in particles:
                 p.rotate(math.radians(rot_speed), noise=rnoise)
 
-        if not my_wallmap.robot_has_collision(robot_next_position, robot.get_radius()):
+        if not my_wallmap.particle_has_collision(robot_next_position, robot.get_radius()):
             robot.apply_move(robot_next_position)
             for p, position in zip(particles, next_positions):
                 p.apply_move(position)
