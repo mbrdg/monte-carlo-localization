@@ -1,8 +1,9 @@
+import itertools
 import math
-import sys
 
 import numpy as np
 import pygame
+from shapely.geometry import Polygon
 
 import geometry_utils
 from consts import *
@@ -27,6 +28,10 @@ class Obstacle:
     def __init__(self, edges, color):
         self.edges = edges
         self.color = color
+        self.polygon = Polygon(itertools.chain.from_iterable((e.pos1, e.pos2) for e in edges))
+
+    def get_polygon(self):
+        return self.polygon
 
 
 class Wallmap:
@@ -39,6 +44,9 @@ class Wallmap:
         self.obstacles = []
         self.width = width
         self.height = height
+
+    def get_obstacles(self):
+        return self.obstacles
 
     def add_edge(self, edge):
         pos1 = edge.pos1
@@ -95,12 +103,14 @@ class Wallmap:
     def draw_tile_debug(self, screen):
         # represent tiles in tilemap as red rectangles, with increasing intensity for each edge
         for tile in self.tilemap:
-            tile_pos = np.array([int(x) for x in tile.split(';')])
-            intensity = (len(self.edges) -
-                         len(self.tilemap[tile]))/len(self.edges)
-            intensity = intensity**4
-            pygame.draw.rect(screen, (255, int(intensity*255), int(intensity*255)), pygame.Rect(
-                tile_pos * self.grid_size, (self.grid_size, self.grid_size)))
+            tx, yx = tuple(int(x) for x in tile.split(';'))[:2]
+            intensity = (len(self.edges) - len(self.tilemap[tile])) / len(self.edges)
+            intensity = intensity ** 4
+            pygame.draw.rect(
+                screen,
+                (255, int(intensity * 255), int(intensity * 255)), 
+                pygame.Rect(tx * self.grid_size, yx * self.grid_size, self.grid_size, self.grid_size)
+            )
 
     def draw(self, screen, *, draw_tile_debug=False):
         if draw_tile_debug:
@@ -108,11 +118,9 @@ class Wallmap:
         self.draw_walls(screen)
         self.draw_obstacles(screen)
 
-    def robot_has_collision(self, robot_pos, robot_radius):
-
-        grid_pos = [math.floor(robot_pos[0] / self.grid_size),
-                    math.floor(robot_pos[1] / self.grid_size)]
-        grid_range = math.ceil(robot_radius / self.grid_size)
+    def particle_has_collision(self, position, radius):
+        grid_pos = [math.floor(position[0] / self.grid_size), math.floor(position[1] / self.grid_size)]
+        grid_range = math.ceil(radius / self.grid_size)
 
         for x_offset in range(-grid_range, grid_range+1):
             for y_offset in range(-grid_range, grid_range+1):
@@ -127,7 +135,10 @@ class Wallmap:
                 if f'{x};{y}' in self.tilemap:
                     edges = self.tilemap[f'{x};{y}']
                     for edge in edges:
-                        if geometry_utils.circle_line_collision(edge.pos1 * self.grid_size, edge.pos2 * self.grid_size, robot_pos, robot_radius):
+                        if geometry_utils.circle_line_collision(
+                            edge.pos1 * self.grid_size, edge.pos2 * self.grid_size,
+                            position, radius
+                        ):
                             return True
         return False
 
