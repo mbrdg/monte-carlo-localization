@@ -4,7 +4,10 @@ import configparser
 import math
 import random
 import sys
+import threading
 from itertools import chain
+from threading import Thread
+from time import sleep
 
 import numpy as np
 import pygame
@@ -71,7 +74,7 @@ def generate_particle_positions(positions, weights, num_particles):
 # TODO make the main function class game to have this come from self
 
 
-def generate_particles(particles, robot, surrounding_edges, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
+def generate_particles(particles, robot_measure, surrounding_edges, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
 
     width, height = dimensions
 
@@ -79,11 +82,11 @@ def generate_particles(particles, robot, surrounding_edges, my_wallmap, dimensio
         _, p_surrounding_edges = get_surrounding_cells_edges(p, my_wallmap)
         p.update(p_surrounding_edges, grid_size=grid_size)
 
-    ground_thruth = robot.measure(surrounding_edges)
+    ground_thruth = robot_measure
     scores = [(i, p.likelihood(ground_thruth))
               for i, p in enumerate(particles)]
     scores.sort(key=lambda x: x[1], reverse=True)
-    top_scores = scores[:(len(particles) // 5)]
+    top_scores = scores[:(len(particles) // 10)]
 
     x, y = np.meshgrid(np.arange(width), np.arange(height))
     density_map = np.zeros((height, width))
@@ -104,22 +107,44 @@ def generate_particles(particles, robot, surrounding_edges, my_wallmap, dimensio
         num_generated_particles = (len(particles) - len(top_scores))
 
         if (len(particles) > 20):
-            deductive = (len(particles) - len(top_scores)) * 0.9
+            deductive = (len(particles) - len(top_scores)) * 0.95
             if deductive <= 0:
                 deductive = 1
             num_generated_particles = round(deductive)
 
-        print(num_generated_particles)
+        print("Total particles: ", len(particles))
         generated_particle_positions = generate_particle_positions(np.array(
             [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
 
         top_rotations = [particles[i].get_angle() for i, _ in top_scores]
 
-        particles = [particles[i] for i, _ in top_scores]
-        particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
-                                   range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
+        new_particles = [particles[i] for i, _ in top_scores]
+        new_particles.extend([Particle(position, np.random.normal(loc=random.choice(top_rotations), scale=math.pi, ),
+                                       range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors) for position in generated_particle_positions])
+    else:
+        new_particles = particles
 
-    return particles
+    return new_particles
+
+
+class ParticleGeneratorThread(threading.Thread):
+    def __init__(self, particles, robot_measure, surrounding_edges, my_wallmap, dimensions, grid_size, sensor_range, sensor_aperture, num_sensors):
+        threading.Thread.__init__(self)
+        self.particles = particles
+        self.robot_measure = robot_measure
+        self.surrounding_edges = surrounding_edges
+        self.my_wallmap = my_wallmap
+        self.dimensions = dimensions
+        self.grid_size = grid_size
+        self.sensor_range = sensor_range
+        self.sensor_aperture = sensor_aperture
+        self.num_sensors = num_sensors
+
+    def run(self):
+        self.particles = generate_particles(self.particles, self.robot_measure, self.surrounding_edges, self.my_wallmap,
+                                            self.dimensions, self.grid_size, self.sensor_range, self.sensor_aperture, self.num_sensors)
+
+        return self.particles
 
 
 def main() -> None:
@@ -160,10 +185,18 @@ def main() -> None:
             range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors
         ) for _ in range(SAMPLES)
     ]
+
+    robot_start_positions = [
+        (width / 2.0, height / 2.0),
+        (200, 300)
+    ]
+
     robot = Particle(
-        (width / 2.0, height / 2.0), 0,
+        robot_start_positions[1], 0,
         range_=sensor_range, aperture=sensor_aperture, num_sensors=num_sensors
     )
+
+    particle_gen_thread = None
 
     running = True
     while running:
@@ -214,10 +247,22 @@ def main() -> None:
             robot, my_wallmap)
         robot.update(surrounding_edges, grid_size=grid_size)
 
-        particles = generate_particles(particles, robot, surrounding_edges, my_wallmap, (width, height),
-                                       grid_size, sensor_range, sensor_aperture, num_sensors)
+        robot_measure = robot.measure(surrounding_edges)
 
+        # if particle_gen_thread is None:
+        #    particle_gen_thread = ParticleGeneratorThread(particles, robot_measure, surrounding_edges, my_wallmap, (width, height),
+        #                                                  grid_size, sensor_range, sensor_aperture, num_sensors)
+        #    particle_gen_thread.start()
+#
+        # if not particle_gen_thread.is_alive():
+#
+        #    particle_gen_thread.join()
+        #    particles = particle_gen_thread.particles
+        #    particle_gen_thread = None
         # Draw
+
+        particles = generate_particles(particles, robot_measure, surrounding_edges, my_wallmap,
+                                       (width, height), grid_size, sensor_range, sensor_aperture, num_sensors)
 
         my_wallmap.draw(screen, draw_tile_debug=True)
 
