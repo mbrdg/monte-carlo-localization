@@ -22,6 +22,7 @@ FPS = 24
 SAMPLES = 200
 SPEED = 3
 ROT_SPEED = 5
+GEN_VARIANCE = 100
 
 
 def read_config(file_path, sim_settings_name):
@@ -102,18 +103,20 @@ def generate_particles(particles, robot_measure, my_wallmap, dimensions, grid_si
     ground_thruth = robot_measure
     scores = [(i, p.likelihood(ground_thruth))
               for i, p in enumerate(particles)]
+    scores_avg = np.mean([score for _, score in scores])
+    scores = [(i, score/scores_avg) for i, score in scores]
     scores.sort(key=lambda x: x[1], reverse=True)
     top_scores = scores[:(len(particles) // 10)]
 
     x, y = np.meshgrid(np.arange(width), np.arange(height))
     density_map = np.zeros((height, width))
 
-    VARIANCE = 1000
+    
 
     for i, weight in top_scores:
         density_map += weight * \
             gaussian_distribution(
-                x, y, particles[i].get_position(), VARIANCE)
+                x, y, particles[i].get_position(), GEN_VARIANCE)
 
     density_map /= np.sum(density_map)
 
@@ -289,9 +292,10 @@ def main() -> None:
         # particle_measurements = particle.measure(surrounding_edges)
         # print(Particle.likelihood(ground_thruth, particle_measurements))
 
-        Particle.draw_robot(screen, robot, color=(148, 0, 211))
+        
         for p in particles:
             Particle.draw_particle(screen, p)
+        Particle.draw_robot(screen, robot, color=(148, 0, 211))
 
         for key, _ in surrounding_cells:
             cell_x, cell_y = key.split(';')
