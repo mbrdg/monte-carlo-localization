@@ -288,6 +288,7 @@ def main() -> None:
 
         # Cap the frame rate
         clock.tick(FPS)
+        print(f'FPS {clock.get_fps()}')
 
     pygame.quit()
     sys.exit()
