@@ -1,4 +1,3 @@
-import itertools
 import math
 import random
 
@@ -24,7 +23,7 @@ class Particle:
         self.range_ = range_
         self.aperture = aperture
         self.num_sensors = num_sensors
-        self.measurements = itertools.repeat(self.range_, self.num_sensors)
+        self.measurements = np.full((num_sensors, ), self.range_)
 
     def get_position(self):
         return self.position
@@ -36,21 +35,9 @@ class Particle:
         return self.radius
 
     def likelihood(self, ground_thruth):
-
-        dists = [abs(m - g)
-                 for m, g in zip(self.measurements, ground_thruth)]
-
-        weigth = self.range_*self.num_sensors - sum(dists)
-
-        return weigth
-
-        def normpdf(x, mu, sigma):
-            return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
-
-        return math.fsum(
-            normpdf(measured, thruth, SIGMA_MEASURE)
-            for thruth, measured in zip(ground_thruth, self.measurements)
-        )
+        # In fact, this is cosine similarity
+        denominator = np.linalg.norm(self.measurements) * np.linalg.norm(ground_thruth)
+        return self.measurements @ ground_thruth.T / denominator
 
     def rotate(self, angle, *, target_angle=None, noise=None):
         noise = random.gauss(0, SIGMA_ROTATE) if noise is None else noise
@@ -84,7 +71,7 @@ class Particle:
         angles = np.linspace(start_angle, stop_angle, num=self.num_sensors)
 
         if distances is None:
-            distances = itertools.repeat(self.range_, self.num_sensors)
+            distances = np.full((self.num_sensors, ), self.range_)
 
         return (
             (x + math.cos(angle) * distance, y + math.sin(angle) * distance)
@@ -92,13 +79,13 @@ class Particle:
         )
 
     def measure(self, walls, *, grid_size=20):
-        measurements = []
-        for sample in self.compute_sensor_points():
+        measurements = np.empty((self.num_sensors, ))
+
+        for i, sample in enumerate(self.compute_sensor_points()):
             intersections = (
                 geometry_utils.line_line_intersection(
-                    (wall.pos1 * grid_size, wall.pos2 *
-                     grid_size), (self.position, sample)
-                ) for wall in walls
+                    (wall.pos1 * grid_size, wall.pos2 *grid_size),
+                    (self.position, sample)) for wall in walls
             )
             distances = (
                 math.dist(self.position, point)
@@ -107,7 +94,7 @@ class Particle:
 
             measure = min(min(distances, default=self.range_), self.range_)
             noise = random.gauss(0.0, SIGMA_MEASURE)
-            measurements.append(measure + noise)
+            measurements[i] = measure + noise
 
         return measurements
 
@@ -132,9 +119,8 @@ class Particle:
         x, y = particle.position
         pygame.draw.circle(screen, (0, 0, 255), (x, y), particle.radius)
 
-        xr, yr = x + particle.radius * \
-            math.cos(particle.angle), y + particle.radius * \
-            math.sin(particle.angle)
+        xr, yr = (x + particle.radius * math.cos(particle.angle),
+                  y + particle.radius * math.sin(particle.angle))
         pygame.draw.line(screen, (0, 255, 255), (x, y), (xr, yr), 3)
 
     def draw(self, screen, *, draw_sensor_ranges=False, draw_measurements=False):

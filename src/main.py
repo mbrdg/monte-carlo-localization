@@ -18,10 +18,11 @@ from robot import Particle
 from settings import *
 
 FPS = 24
+UPDATE_INTERVAL_MILLIS = 400
 SAMPLES = 200
 SPEED = 3
 ROT_SPEED = 5
-GEN_VARIANCE = 100
+GEN_VARIANCE = 10
 
 
 class Game:
@@ -55,18 +56,7 @@ class Game:
             for c in self.candidates
         ]).reshape((self.height, self.width))
 
-        density_map = self.my_wallmap_mask / np.sum(self.my_wallmap_mask)
-        positions = self.generate_particle_positions(
-            self.candidates, density_map.flatten(), SAMPLES
-        )
-
-        self.particles = [
-            Particle(position, random.uniform(0, 2.0 * math.pi),
-                     range_=self.sensor_range,
-                     aperture=self.sensor_aperture, num_sensors=self.num_sensors)
-            for position in positions
-        ]
-
+        self.particles = self.reset_particles()
         self.robot_start_positions = [
             (self.width / 2.0, self.height / 2.0),
             (200, 300)
@@ -90,6 +80,19 @@ class Game:
 
         return surrounding_cells, surrounding_edges
 
+    def reset_particles(self):
+        density_map = self.my_wallmap_mask / np.sum(self.my_wallmap_mask)
+        positions = self.generate_particle_positions(
+            self.candidates, density_map.flatten(), SAMPLES
+        )
+
+        return [
+            Particle(position, random.uniform(0, 2.0 * math.pi),
+                     range_=self.sensor_range,
+                     aperture=self.sensor_aperture,
+                     num_sensors=self.num_sensors) for position in positions
+        ]
+
     def gaussian_distribution(self, x, y, mean, variance):
         return np.exp(-((x - mean[0])**2 + (y - mean[1])**2) / (2 * variance)) / (2 * np.pi * variance)
     
@@ -100,103 +103,93 @@ class Game:
         return particles
     
     def fit_normal(self, values, weights):
+        # estimate mean
+        weights_sum = weights.sum()
+        mean = (values * weights).sum() / weights_sum
+    
+        # estimate variance
+        errors = (values - mean) ** 2
+        variance = (errors * weights).sum() / weights_sum
             
-            # prepare
-            values = np.array(values)
-            weights = np.array(weights)
-                
-            # estimate mean
-            weights_sum =  weights.sum()
-            mean = (values*weights).sum() / weights_sum
-        
-            # estimate variance
-            errors = (values-mean)**2
-            variance = (errors*weights).sum() / weights_sum
-                
-            return (mean, variance)
+        return (mean, variance)
     
-    def generate_particles(self, particles, robot_measure):
-            
-            width, height = self.width, self.height
-    
-            for p in particles:
-                _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
-                p.update(p_surrounding_edges, grid_size=self.grid_size)
-    
-            ground_thruth = robot_measure
-            scores = [(i, p.likelihood(ground_thruth))
-                    for i, p in enumerate(particles)]
-            scores_avg = np.mean([score for _, score in scores])
-            scores = [(i, score/scores_avg) for i, score in scores]
-            scores.sort(key=lambda x: x[1], reverse=True)
-            top_scores = scores[:(len(particles) // 10)]
-    
-            x, y = np.meshgrid(np.arange(width), np.arange(height))
-            density_map = np.zeros((height, width))
-    
-            
-    
-            for i, weight in top_scores:
-                density_map += weight * \
-                    self.gaussian_distribution(
-                        x, y, particles[i].get_position(), GEN_VARIANCE)
-    
-            density_map /= np.sum(density_map)
-    
-            # if density map has Nan values, skip
-    
-            if not np.isnan(density_map).any():
-    
-                num_generated_particles = (len(particles) - len(top_scores))
-    
-                if (len(particles) > 20):
-                    deductive = (len(particles) - len(top_scores)) * 0.95
-                    if deductive <= 0:
-                        deductive = 1
-                    num_generated_particles = round(deductive)
-    
-                print("Total particles: ", len(particles))
-                generated_particle_positions = self.generate_particle_positions(np.array(
-                    [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
-    
-                top_rotations = [particles[i].get_angle() for i, _ in top_scores]
-    
-                (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
-                rot_mean = rot_mean % (math.pi*2)
-    
-                new_particles = [particles[i] for i, _ in top_scores]
-                new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
-                                            range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions])
-            else:
-                new_particles = particles
-    
-            return new_particles
+    def generate_particles(self, particles, ground_thruth):
+        for p in particles:
+            _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
+            p.update(p_surrounding_edges, grid_size=self.grid_size)
+
+        scores = [(i, p.likelihood(ground_thruth)) for i, p in enumerate(particles)]
+        scores_avg = np.mean([score for _, score in scores])
+        indexed_scores = [(i, score / scores_avg) for i, score in scores]
+        indexed_scores.sort(key=lambda x: x[1], reverse=True)
+        indexed_top_scores = scores[:int(len(particles) * 0.1)]
+
+        density_map = np.zeros((self.height, self.width))
+
+        for i, weight in indexed_top_scores:
+            density_map += weight * self.gaussian_distribution(
+                self.xx, self.yy, particles[i].get_position(), GEN_VARIANCE
+            )
+
+        # multiplying by the mask makes impossible to gen particles in the walls
+        # density_map /= np.sum(density_map)
+        density_map *= self.my_wallmap_mask
+
+        # if density map has Nan values, skip
+        if np.isnan(density_map).any():
+            return particles
+
+        num_generated_particles = (len(particles) - len(indexed_top_scores))
+        if (len(particles) > 20):
+            deductive = max(num_generated_particles * 0.95, 1.0)
+            num_generated_particles = round(deductive)
+
+        # print("Total particles: ", len(particles))
+        generated_particle_positions = self.generate_particle_positions(
+            self.candidates, density_map.flatten(), num_generated_particles
+        )
+
+        top_rotations = np.array([particles[i].get_angle() for i, _ in indexed_top_scores])
+        top_scores = np.array([score for _, score in indexed_top_scores])
+        rot_mean, rot_variance = self.fit_normal(top_rotations, top_scores)
+        rot_mean = rot_mean % (2.0 * math.pi)
+
+        new_particles = [particles[i] for i, _ in indexed_top_scores]
+        new_particles.extend([
+            Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance)) % (2.0 * math.pi),
+                     range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) 
+            for position in generated_particle_positions
+        ])
+
+        return new_particles
     
     def run(self):
         running = True
+        update_particles = False
+        pygame.time.set_timer(pygame.USEREVENT, UPDATE_INTERVAL_MILLIS)
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                if event.type == pygame.USEREVENT:
+                    update_particles = True
     
             pressed_keys = pygame.key.get_pressed()
     
             robot_next_position = self.robot.get_position()
             next_positions = [p.get_position() for p in self.particles]
     
-            speed = SPEED
-            rot_speed = ROT_SPEED
+            speed = SPEED * (pressed_keys[pygame.K_LSHIFT] + 1)
+            rot_speed = ROT_SPEED * ((2 * pressed_keys[pygame.K_LSHIFT]) + 1)
     
             if pressed_keys[pygame.K_w]:
-    
-                if pressed_keys[pygame.K_LSHIFT]:
-                    speed *= 2
-                    rot_speed *= 3
-    
                 robot_next_position, mnoise = self.robot.move(
-                    speed, position=robot_next_position)
-                next_positions = [p.move(speed, noise=mnoise)[0]
-                                for p in self.particles]
+                    speed, position=robot_next_position
+                )
+                next_positions = [
+                    p.move(speed, noise=mnoise)[0] for p in self.particles
+                ]
     
             if pressed_keys[pygame.K_a]:
                 _, lnoise = self.robot.rotate(math.radians(-rot_speed))
@@ -206,32 +199,32 @@ class Game:
                 _, rnoise = self.robot.rotate(math.radians(rot_speed))
                 for p in self.particles:
                     p.rotate(math.radians(rot_speed), noise=rnoise)
+
+            if pressed_keys[pygame.K_r]:
+                self.particles.clear()
+                self.particles = self.reset_particles()
     
             if not self.my_wallmap.particle_has_collision(robot_next_position, self.robot.get_radius()):
                 self.robot.apply_move(robot_next_position)
-                for p, position in zip(self.particles, next_positions):
-                    p.apply_move(position)
+
+            for particle, position in zip(self.particles, next_positions):
+                if not self.my_wallmap.particle_has_collision(position, particle.get_radius()):
+                    particle.apply_move(position)
     
             # Clear
-    
             self.screen.fill(WHITE)
     
             # Update
-    
-            surrounding_cells, surrounding_edges = self.get_surrounding_cells_edges(
-                self.robot)
+            surrounding_cells, surrounding_edges = self.get_surrounding_cells_edges(self.robot)
             self.robot.update(surrounding_edges, grid_size=self.grid_size)
-    
-            robot_measure = self.robot.measure(surrounding_edges)
-    
-            self.particles = self.generate_particles(self.particles, robot_measure)
+
+            if pressed_keys[pygame.K_u] or update_particles:
+                robot_measure = self.robot.measure(surrounding_edges)
+                self.particles = self.generate_particles(self.particles, robot_measure)
+                update_particles = False
 
             self.my_wallmap.draw(self.screen, draw_tile_debug=True)
 
-            # particle_measurements = particle.measure(surrounding_edges)
-            # print(Particle.likelihood(ground_thruth, particle_measurements))
-
-            
             for p in self.particles:
                 Particle.draw_particle(self.screen, p)
             Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211))
