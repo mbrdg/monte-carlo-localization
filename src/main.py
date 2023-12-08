@@ -107,7 +107,7 @@ class Game:
                 
             return (mean, variance)
     
-    def generate_particles(self, particles, robot_measure):
+    def generate_particles(self, particles, ground_thruth):
             
         width, height = self.width, self.height
 
@@ -115,7 +115,6 @@ class Game:
             _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
             p.update(p_surrounding_edges, grid_size=self.grid_size)
 
-        ground_thruth = robot_measure
         scores = [(i, p.likelihood(ground_thruth))
                 for i, p in enumerate(particles)]
         scores_avg = np.mean([score for _, score in scores])
