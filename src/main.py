@@ -19,7 +19,7 @@ from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 200
+SAMPLES = 1000
 SPEED = 3
 ROT_SPEED = 5
 GEN_VARIANCE = 1000
@@ -107,6 +107,8 @@ class Game:
             return (mean, variance)
     
     def generate_particles(self, particles, ground_thruth):
+
+        MIN_PARTICLES = 15
             
         width, height = self.width, self.height
 
@@ -119,7 +121,7 @@ class Game:
         #scores_avg = np.mean([score for _, score in scores])
         #scores = [(i, score/scores_avg) for i, score in scores]
         scores.sort(key=lambda x: x[1], reverse=True)
-        top_scores = scores[:(len(particles) // 10)]
+        top_scores = scores[:max((len(particles) // 10), round(.5 *MIN_PARTICLES ))]
 
         x, y = np.meshgrid(np.arange(width), np.arange(height))
         density_map = np.zeros((height, width))
@@ -143,8 +145,8 @@ class Game:
 
             num_generated_particles = (len(particles) - len(top_scores))
 
-            if (len(particles) > 20):
-                deductive = (len(particles) - len(top_scores)) * 0.95
+            if (len(particles) >    MIN_PARTICLES):
+                deductive = (len(particles) - len(top_scores)) * 0.9
                 if deductive <= 0:
                     deductive = 1
                 num_generated_particles = round(deductive)
