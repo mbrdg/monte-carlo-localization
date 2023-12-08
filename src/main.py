@@ -59,11 +59,11 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[0], 0,
+            self.robot_start_positions[1], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
         )
 
-        self.gen_variance_max = 10000
+        self.gen_variance_max = 7500
         self.gen_variance_min = 1
 
         print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
