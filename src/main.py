@@ -59,15 +59,14 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[1], 0,
+            self.robot_start_positions[0], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
         )
 
         self.gen_variance_max = 10000
         self.gen_variance_min = 1
-        self.likelihood_max = self.num_sensors * self.sensor_range
 
-        print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Likelihood max {self.likelihood_max}")
+        print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
 
     def get_surrounding_cells_edges(self, particle):
         surrounding_cells = self.my_wallmap.get_surrounding_cells(
@@ -117,21 +116,17 @@ class Game:
 
         scores = [(i, p.likelihood(ground_thruth))
                 for i, p in enumerate(particles)]
-        scores_avg = np.mean([score for _, score in scores])
-        scores = [(i, score/scores_avg) for i, score in scores]
+        #scores_avg = np.mean([score for _, score in scores])
+        #scores = [(i, score/scores_avg) for i, score in scores]
         scores.sort(key=lambda x: x[1], reverse=True)
         top_scores = scores[:(len(particles) // 10)]
 
         x, y = np.meshgrid(np.arange(width), np.arange(height))
         density_map = np.zeros((height, width))
 
+        top_scores_avg = np.mean([score for _, score in top_scores])
     
-
-        # calculate variance according to limits and avg scores
-    
-        gen_variance = (self.gen_variance_max - self.gen_variance_min) * \
-            (1 - ((scores_avg) / self.likelihood_max))**2 + self.gen_variance_min
-            
+        gen_variance = self.gen_variance_max * (1-(top_scores_avg)) 
 
         for i, weight in top_scores:
             density_map += weight * \
@@ -162,7 +157,7 @@ class Game:
 
             (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
             rot_mean = rot_mean % (math.pi*2)
-            rot_variance = rot_variance * (self.likelihood_max / scores_avg)
+            rot_variance = rot_variance * (1 / top_scores_avg)
 
             new_particles = [particles[i] for i, _ in top_scores]
             new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
@@ -170,7 +165,7 @@ class Game:
         else:
             new_particles = particles
 
-        print(f"Total particles {len(particles)} ; Scores svg {scores_avg} ; Variance {gen_variance}")
+        print(f"Total particles {len(particles)} ; Scores svg {top_scores_avg} ; Variance {gen_variance}")
 
         return new_particles
     

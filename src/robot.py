@@ -40,7 +40,7 @@ class Particle:
         dists = [abs(m - g)
                  for m, g in zip(self.measurements, ground_thruth)]
 
-        weigth = self.range_*self.num_sensors - sum(dists)
+        weigth = (self.range_*self.num_sensors - sum(dists)) / (self.range_*self.num_sensors)
 
         return weigth
 
