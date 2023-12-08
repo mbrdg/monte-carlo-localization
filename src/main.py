@@ -4,13 +4,12 @@ import configparser
 import math
 import random
 import sys
-import threading
 from itertools import chain
-from threading import Thread
-from time import sleep
 
 import numpy as np
 import pygame
+from shapely import STRtree
+from shapely.geometry import Point
 
 import map_gen
 import wallmap
@@ -45,12 +44,27 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
+        # Read-only, should only be constructed after building the wallmap
+        tree = STRtree([obs.get_polygon() for obs in self.my_wallmap.get_obstacles()])
+
+        self.xx, self.yy = np.meshgrid(np.arange(self.width), np.arange(self.height))
+        self.candidates = np.array([self.xx.flatten(), self.yy.flatten()]).T
+
+        self.my_wallmap_mask = np.array([
+            float(tree.query(Point(c[0], c[1]).buffer(Particle.RADIUS)).size == 0)
+            for c in self.candidates
+        ]).reshape((self.height, self.width))
+
+        density_map = self.my_wallmap_mask / np.sum(self.my_wallmap_mask)
+        positions = self.generate_particle_positions(
+            self.candidates, density_map.flatten(), SAMPLES
+        )
+
         self.particles = [
-            Particle(
-                (random.uniform(0, self.width), random.uniform(0, self.height)),
-                random.uniform(0, 2 * math.pi),
-                range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
-            ) for _ in range(SAMPLES)
+            Particle(position, random.uniform(0, 2.0 * math.pi),
+                     range_=self.sensor_range,
+                     aperture=self.sensor_aperture, num_sensors=self.num_sensors)
+            for position in positions
         ]
 
         self.robot_start_positions = [
