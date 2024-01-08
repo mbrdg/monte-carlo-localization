@@ -28,28 +28,26 @@ GEN_VARIANCE = 1000
 class Game:
 
     def __init__(self, config_data):
-        self.width, self.height = config_data['width'], config_data['height']
-        self.grid_size = config_data['grid_size']
+
+        self.enviroment_id = config_data['environment_id']
         self.sensor_range = config_data['sensor_range']
         self.sensor_aperture = config_data['sensor_aperture']
         self.num_sensors = config_data['num_sensors']
 
-        pygame.init()
-
-        
-
-        self.enviroment = game_environment.Environment('enviroment_2')
-        self.wallmap = self.enviroment.wallmap
-        self.width, self.height = self.enviroment.width, self.enviroment.height
-
-        self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Montecarlo Localization")
-
-        self.clock = pygame.time.Clock()
-
         Particle.ROBOT_SIZE = config_data['robot_size']
         Particle.PARTICLE_SIZE = config_data['particle_size']
 
+        self.enviroment = game_environment.Environment(self.enviroment_id)
+        self.wallmap = self.enviroment.wallmap
+        self.width, self.height = self.enviroment.width, self.enviroment.height
+        self.grid_size = self.enviroment.grid_size
+
+        pygame.init()
+        self.screen = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Montecarlo Localization")
+        self.clock = pygame.time.Clock()
+
+    
         self.particles = [
             Particle(
                 (random.uniform(0, self.width), random.uniform(0, self.height)),
@@ -269,9 +267,7 @@ def read_config(file_path, sim_settings_name):
     config = configparser.ConfigParser()
     config.read(file_path)
 
-    width = config.getint('EnvironmentSettings', 'window_width')
-    height = config.getint('EnvironmentSettings', 'window_height')
-    grid_size = config.getint('EnvironmentSettings', 'grid_size')
+    environment_id = config.get('EnvironmentSettings', 'environment_id')
     robot_size = config.getint('EnvironmentSettings', 'robot_size')
     particle_size = config.getint('EnvironmentSettings', 'particle_size')
 
@@ -281,9 +277,7 @@ def read_config(file_path, sim_settings_name):
     num_sensors = config.getint(sim_settings_name, 'num_sensors')
 
     return {
-        'width': width,
-        'height': height,
-        'grid_size': grid_size,
+        'environment_id': environment_id,
         'robot_size': robot_size,
         'particle_size': particle_size,
         'sensor_range': sensor_range,

@@ -7,10 +7,12 @@ class Environment:
     def __init__(self, env_id):
         self.env_id = env_id
 
-        if env_id == 'enviroment_1':
+        if env_id == 'environment_1':
             self.define_environment_1()
-        elif env_id == 'enviroment_2':
+        elif env_id == 'environment_2':
             self.define_environment_2()
+        else:
+            raise Exception('Invalid environment id, {}'.format(env_id))
         
     def define_environment_1(self):
 
