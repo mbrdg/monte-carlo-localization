@@ -114,7 +114,7 @@ class Particle:
         return self.measurements
 
     @staticmethod
-    def draw_robot(screen, robot, *, color=(0, 0, 0)):
+    def draw_robot(screen, robot, *, color=(0, 0, 0), draw_lasers=False, draw_laser_outlines=False):
         x, y = robot.position
         pygame.draw.circle(screen, color, (x, y), robot.radius)
 
@@ -123,7 +123,13 @@ class Particle:
         pygame.draw.line(screen, (255, 0, 0), (x, y), (xr, yr), 3)
 
         points = tuple(robot.compute_sensor_points(robot.measurements))
-        pygame.draw.lines(screen, (0, 255, 0), False, points, 3)
+
+        if draw_lasers:
+            for point in points:
+                pygame.draw.line(screen, (255, 0, 0), (x, y), point, 2)
+        
+        if draw_laser_outlines:
+            pygame.draw.lines(screen, (0, 255, 0), False, points, 3)
 
     @staticmethod
     def draw_particle(screen, particle):

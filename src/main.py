@@ -33,6 +33,8 @@ class Game:
         self.sensor_range = config_data['sensor_range']
         self.sensor_aperture = config_data['sensor_aperture']
         self.num_sensors = config_data['num_sensors']
+        self.view_laser = config_data['view_laser']
+        self.view_laser_outline = config_data['view_laser_outline']
 
         self.wall_density_viz = config_data['wall_density_viz']
         self.cell_range_viz = config_data['cell_range_viz']
@@ -238,7 +240,7 @@ class Game:
             # particle_measurements = particle.measure(surrounding_edges)
             # print(Particle.likelihood(ground_thruth, particle_measurements))
 
-            Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211))
+            Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211), draw_lasers=self.view_laser, draw_laser_outlines=self.view_laser_outline)
 
             for p in self.particles:
                 Particle.draw_particle(self.screen, p)
@@ -274,6 +276,9 @@ def read_config(file_path, sim_settings_name):
     environment_id = config.get('EnvironmentSettings', 'environment_id')
     robot_size = config.getint('EnvironmentSettings', 'robot_size')
     particle_size = config.getint('EnvironmentSettings', 'particle_size')
+    view_laser = config.getboolean('EnvironmentSettings', 'view_laser')
+    view_laser_outline = config.getboolean(
+        'EnvironmentSettings', 'view_laser_outline')
 
     wall_density_viz = config.getboolean(
         'DebugSettings', 'wall_density_viz')
@@ -289,6 +294,8 @@ def read_config(file_path, sim_settings_name):
         'environment_id': environment_id,
         'robot_size': robot_size,
         'particle_size': particle_size,
+        'view_laser': view_laser,
+        'view_laser_outline': view_laser_outline,
         'wall_density_viz': wall_density_viz,
         'cell_range_viz': cell_range_viz,
         'sensor_range': sensor_range,
