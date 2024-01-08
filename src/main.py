@@ -19,7 +19,7 @@ from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 400
+SAMPLES = 40
 SPEED = 3
 ROT_SPEED = 5
 GEN_VARIANCE = 1000
@@ -45,11 +45,15 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
+        Particle.ROBOT_SIZE = config_data['robot_size']
+        Particle.PARTICLE_SIZE = config_data['particle_size']
+
         self.particles = [
             Particle(
                 (random.uniform(0, self.width), random.uniform(0, self.height)),
                 random.uniform(0, 2 * math.pi),
-                range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
+                range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
+                type='particle'
             ) for _ in range(SAMPLES)
         ]
 
@@ -60,7 +64,8 @@ class Game:
 
         self.robot = Particle(
             self.robot_start_positions[0], 0,
-            range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
+            range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
+            type='robot'
         )
 
         self.gen_variance_max = 5000
@@ -265,6 +270,8 @@ def read_config(file_path, sim_settings_name):
     width = config.getint('EnvironmentSettings', 'window_width')
     height = config.getint('EnvironmentSettings', 'window_height')
     grid_size = config.getint('EnvironmentSettings', 'grid_size')
+    robot_size = config.getint('EnvironmentSettings', 'robot_size')
+    particle_size = config.getint('EnvironmentSettings', 'particle_size')
 
     sensor_range = config.getint(sim_settings_name, 'sensor_range')
     sensor_aperture = math.radians(config.getint(
@@ -275,6 +282,8 @@ def read_config(file_path, sim_settings_name):
         'width': width,
         'height': height,
         'grid_size': grid_size,
+        'robot_size': robot_size,
+        'particle_size': particle_size,
         'sensor_range': sensor_range,
         'sensor_aperture': sensor_aperture,
         'num_sensors': num_sensors

@@ -13,13 +13,19 @@ SIGMA_MEASURE = 1.0
 
 
 class Particle:
-    RADIUS = 3
+    ROBOT_SIZE = 10
+    PARTICLE_SIZE = 5
 
     def __init__(self, position, angle, *,
-                 range_=50.0, aperture=math.pi/4.0, num_sensors=5):
+                 range_=50.0, aperture=math.pi/4.0, num_sensors=5, type='particle'):
+        
         self.position = position
         self.angle = angle
-        self.radius = Particle.RADIUS
+
+        if type == 'particle':
+            self.radius = Particle.PARTICLE_SIZE
+        else:
+            self.radius = Particle.ROBOT_SIZE
 
         self.range_ = range_
         self.aperture = aperture
@@ -43,14 +49,6 @@ class Particle:
         weigth = (self.range_*self.num_sensors - sum(dists)) / (self.range_*self.num_sensors)
 
         return weigth
-
-        def normpdf(x, mu, sigma):
-            return math.exp(- 0.5 * ((x - mu) ** 2.0) / (sigma ** 2.0))
-
-        return math.fsum(
-            normpdf(measured, thruth, SIGMA_MEASURE)
-            for thruth, measured in zip(ground_thruth, self.measurements)
-        )
 
     def rotate(self, angle, *, target_angle=None, noise=None):
         noise = random.gauss(0, SIGMA_ROTATE) if noise is None else noise
