@@ -19,7 +19,7 @@ from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 1000
+SAMPLES = 400
 SPEED = 3
 ROT_SPEED = 5
 GEN_VARIANCE = 1000
@@ -59,11 +59,11 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[1], 0,
+            self.robot_start_positions[0], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors
         )
 
-        self.gen_variance_max = 7500
+        self.gen_variance_max = 5000
         self.gen_variance_min = 1
 
         print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
@@ -230,10 +230,10 @@ class Game:
             # particle_measurements = particle.measure(surrounding_edges)
             # print(Particle.likelihood(ground_thruth, particle_measurements))
 
-            
+            Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211))
+
             for p in self.particles:
                 Particle.draw_particle(self.screen, p)
-            Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211))
 
             for key, _ in surrounding_cells:
                 cell_x, cell_y = key.split(';')

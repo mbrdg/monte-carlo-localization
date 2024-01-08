@@ -13,7 +13,7 @@ SIGMA_MEASURE = 1.0
 
 
 class Particle:
-    RADIUS = 10
+    RADIUS = 3
 
     def __init__(self, position, angle, *,
                  range_=50.0, aperture=math.pi/4.0, num_sensors=5):
