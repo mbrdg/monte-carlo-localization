@@ -34,6 +34,9 @@ class Game:
         self.sensor_aperture = config_data['sensor_aperture']
         self.num_sensors = config_data['num_sensors']
 
+        self.wall_density_viz = config_data['wall_density_viz']
+        self.cell_range_viz = config_data['cell_range_viz']
+
         Particle.ROBOT_SIZE = config_data['robot_size']
         Particle.PARTICLE_SIZE = config_data['particle_size']
 
@@ -230,7 +233,7 @@ class Game:
     
             self.particles = self.generate_particles(self.particles, robot_measure)
 
-            self.wallmap.draw(self.screen, draw_tile_debug=True)
+            self.wallmap.draw(self.screen, draw_tile_debug=self.wall_density_viz)
 
             # particle_measurements = particle.measure(surrounding_edges)
             # print(Particle.likelihood(ground_thruth, particle_measurements))
@@ -240,15 +243,16 @@ class Game:
             for p in self.particles:
                 Particle.draw_particle(self.screen, p)
 
-            for key, _ in surrounding_cells:
-                cell_x, cell_y = key.split(';')
-                cell_x = int(cell_x) * self.grid_size
-                cell_y = int(cell_y) * self.grid_size
-                s = pygame.Surface((20, 20), pygame.SRCALPHA)
-                # notice the alpha value in the color
-                s.fill((0, 255, 0, 50))
+            if self.cell_range_viz:
+                for key, _ in surrounding_cells:
+                    cell_x, cell_y = key.split(';')
+                    cell_x = int(cell_x) * self.grid_size
+                    cell_y = int(cell_y) * self.grid_size
+                    s = pygame.Surface((20, 20), pygame.SRCALPHA)
+                    # notice the alpha value in the color
+                    s.fill((0, 255, 0, 50))
 
-                self.screen.blit(s, (cell_x, cell_y))
+                    self.screen.blit(s, (cell_x, cell_y))
 
             # Refresh the display
             pygame.display.flip()
@@ -271,6 +275,11 @@ def read_config(file_path, sim_settings_name):
     robot_size = config.getint('EnvironmentSettings', 'robot_size')
     particle_size = config.getint('EnvironmentSettings', 'particle_size')
 
+    wall_density_viz = config.getboolean(
+        'DebugSettings', 'wall_density_viz')
+    cell_range_viz = config.getboolean(
+        'DebugSettings', 'cell_range_viz')
+
     sensor_range = config.getint(sim_settings_name, 'sensor_range')
     sensor_aperture = math.radians(config.getint(
         sim_settings_name, 'sensor_aperture'))
@@ -280,6 +289,8 @@ def read_config(file_path, sim_settings_name):
         'environment_id': environment_id,
         'robot_size': robot_size,
         'particle_size': particle_size,
+        'wall_density_viz': wall_density_viz,
+        'cell_range_viz': cell_range_viz,
         'sensor_range': sensor_range,
         'sensor_aperture': sensor_aperture,
         'num_sensors': num_sensors

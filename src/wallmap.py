@@ -141,7 +141,7 @@ class Wallmap:
                             return True
         return False
 
-    def get_surrounding_cells_range(self, pos, range_):
+    def get_surrounding_cells_range(self, pos, range_, angle, aperture=math.pi):
 
         surrounding_cells = []
 
