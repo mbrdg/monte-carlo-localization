@@ -12,14 +12,14 @@ from time import sleep
 import numpy as np
 import pygame
 
-import map_gen
+import game_environment as game_environment
 import wallmap
 from consts import *
 from robot import Particle
 from settings import *
 
 FPS = 24
-SAMPLES = 40
+SAMPLES = 400
 SPEED = 3
 ROT_SPEED = 5
 GEN_VARIANCE = 1000
@@ -36,12 +36,14 @@ class Game:
 
         pygame.init()
 
+        
+
+        self.enviroment = game_environment.Environment('enviroment_2')
+        self.wallmap = self.enviroment.wallmap
+        self.width, self.height = self.enviroment.width, self.enviroment.height
+
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Wall Map")
-
-        self.my_wallmap = wallmap.Wallmap(None, self.grid_size)
-
-        map_gen.define_environment_1(self.my_wallmap, self.grid_size)
+        pygame.display.set_caption("Montecarlo Localization")
 
         self.clock = pygame.time.Clock()
 
@@ -74,7 +76,7 @@ class Game:
         print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
 
     def get_surrounding_cells_edges(self, particle):
-        surrounding_cells = self.my_wallmap.get_surrounding_cells(
+        surrounding_cells = self.wallmap.get_surrounding_cells(
             particle.get_position(),
             mode='aperture',
             range_=particle.range_,
@@ -211,7 +213,7 @@ class Game:
                 for p in self.particles:
                     p.rotate(math.radians(rot_speed), noise=rnoise)
     
-            if not self.my_wallmap.particle_has_collision(robot_next_position, self.robot.get_radius()):
+            if not self.wallmap.particle_has_collision(robot_next_position, self.robot.get_radius()):
                 self.robot.apply_move(robot_next_position)
                 for p, position in zip(self.particles, next_positions):
                     p.apply_move(position)
@@ -230,7 +232,7 @@ class Game:
     
             self.particles = self.generate_particles(self.particles, robot_measure)
 
-            self.my_wallmap.draw(self.screen, draw_tile_debug=True)
+            self.wallmap.draw(self.screen, draw_tile_debug=True)
 
             # particle_measurements = particle.measure(surrounding_edges)
             # print(Particle.likelihood(ground_thruth, particle_measurements))

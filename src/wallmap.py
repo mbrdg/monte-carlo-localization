@@ -35,8 +35,7 @@ class Obstacle:
 
 
 class Wallmap:
-    def __init__(self, game, grid_size=16, *, width=800, height=600):
-        self.game = game
+    def __init__(self, grid_size=16, *, width=800, height=600):
         self.grid_size = grid_size
         self.tilemap = {}
         self.gridmap = {}
