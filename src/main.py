@@ -172,7 +172,7 @@ class Game:
             gen_multiplier = max(1.2, np.mean(self.last_scores)/top_scores_avg)
             print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier
-            rot_variance = self.current_rotation_variance * 3
+            rot_variance = self.current_rotation_variance * 0.6 + self.rotation_variance_max * 0.4
 
         self.last_scores = self.last_scores[1:]
         self.last_scores.append(top_scores_avg)
