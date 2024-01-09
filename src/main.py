@@ -24,6 +24,8 @@ SPEED = 3
 ROT_SPEED = 5
 GEN_VARIANCE = 1000
 
+GEN_INTERVAL = 8
+
 
 class Game:
 
@@ -115,7 +117,7 @@ class Game:
             variance = (errors*weights).sum() / weights_sum
                 
             return (mean, variance)
-    
+       
     def generate_particles(self, particles, ground_thruth):
 
         MIN_PARTICLES = 15
@@ -146,9 +148,6 @@ class Game:
                     x, y, particles[i].get_position(), gen_variance)
 
         density_map /= np.sum(density_map)
-
-        # if density map has Nan values, skip
-
         
 
         if not np.isnan(density_map).any():
@@ -183,6 +182,9 @@ class Game:
     
     def run(self):
         running = True
+
+        frame_count = 0
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -232,8 +234,9 @@ class Game:
             self.robot.update(surrounding_edges, grid_size=self.grid_size)
     
             robot_measure = self.robot.measure(surrounding_edges)
-    
-            self.particles = self.generate_particles(self.particles, robot_measure)
+
+            if frame_count % GEN_INTERVAL == 0:
+              self.particles = self.generate_particles(self.particles, robot_measure)
 
             self.wallmap.draw(self.screen, draw_tile_debug=self.wall_density_viz)
 
@@ -262,6 +265,8 @@ class Game:
             # Cap the frame rate
             self.clock.tick(FPS)
             print(f'FPS {self.clock.get_fps()}')
+
+            frame_count += 1
 
         pygame.quit()
         sys.exit()
