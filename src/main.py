@@ -70,13 +70,22 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[0], 0,
+            self.robot_start_positions[1], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
             type='robot'
         )
 
-        self.gen_variance_max = 5000
-        self.gen_variance_min = 1
+        self.gen_variance_max = 1000
+        self.gen_variance_min = 5
+
+        self.rotation_variance_max = math.radians(270)
+        self.rotation_variance_min = math.radians(1)
+
+        self.current_rotation_variance = self.rotation_variance_max
+        self.current_variance = self.gen_variance_max
+        self.last_score = 0
+
+        self.last_position_variance = 1000
 
         print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
 
@@ -139,8 +148,48 @@ class Game:
         density_map = np.zeros((height, width))
 
         top_scores_avg = np.mean([score for _, score in top_scores])
-    
-        gen_variance = self.gen_variance_max * (1-(top_scores_avg)) 
+
+        num_generated_particles = (len(particles) - len(top_scores))
+
+        gen_variance = self.current_variance
+        rot_variance = self.current_rotation_variance
+
+        gen_multiplier = 1
+
+        # TODO account for cumulative error?
+        print(f"Last score {self.last_score} ; Top score {top_scores_avg}")
+        if round(top_scores_avg,2) >= round(self.last_score,2) or top_scores_avg > 0.90:
+            gen_multiplier = min(0.9, top_scores_avg)
+            print(f"Gen multiplier {gen_multiplier}")
+            gen_variance = self.current_variance * gen_multiplier
+            rot_variance = self.current_rotation_variance * gen_multiplier
+            rot_variance = max(self.rotation_variance_min, rot_variance)
+            self.last_score = top_scores_avg
+        else:
+            gen_multiplier = max(1.2, self.last_score/top_scores_avg)
+            print(f"Gen multiplier {gen_multiplier}")
+            gen_variance = self.current_variance * gen_multiplier
+            rot_variance = self.current_rotation_variance * 3
+
+        gen_variance = max(self.gen_variance_min, gen_variance)
+
+        self.current_variance = gen_variance
+        
+
+        if (True):
+            self.last_best_gen_score = top_scores_avg
+            gen_variance = self.current_variance * top_scores_avg   
+
+            if (len(particles) > MIN_PARTICLES):
+                deductive = (len(particles)) * gen_multiplier
+                if deductive <= 0:
+                    deductive = 1
+                num_generated_particles = round(deductive)
+                num_generated_particles = min(SAMPLES, num_generated_particles)
+                num_generated_particles = max(MIN_PARTICLES, num_generated_particles)
+                print(f"Num generated particles {num_generated_particles}")
+            else:
+                num_generated_particles = MIN_PARTICLES
 
         for i, weight in top_scores:
             density_map += weight * \
@@ -152,25 +201,19 @@ class Game:
 
         if not np.isnan(density_map).any():
 
-            num_generated_particles = (len(particles) - len(top_scores))
-
-            if (len(particles) >    MIN_PARTICLES):
-                deductive = (len(particles) - len(top_scores)) * 0.9
-                if deductive <= 0:
-                    deductive = 1
-                num_generated_particles = round(deductive)
-
-            
             generated_particle_positions = self.generate_particle_positions(np.array(
                 [x.flatten(), y.flatten()]).T, density_map.flatten(), num_generated_particles)
 
-            top_rotations = [particles[i].get_angle() for i, _ in top_scores]
+            top_rotations = [particles[i].get_angle()% (math.pi*2) for i, _ in top_scores]
+            #print(f"Top rotations {top_rotations}")
 
             (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
             rot_mean = rot_mean % (math.pi*2)
-            rot_variance = rot_variance * (1 / top_scores_avg)
+            #rot_variance = rot_variance * (1 / top_scores_avg)
+            #print(f"Rot mean {rot_mean} ; Rot variance {rot_variance}")
 
             new_particles = [particles[i] for i, _ in top_scores]
+            new_particles = []
             new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
                                         range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions])
         else:

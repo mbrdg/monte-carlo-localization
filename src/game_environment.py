@@ -248,7 +248,7 @@ class Environment:
         wall_7()
         wall_8()
         box_1()
-        maze_1()
+        #maze_1()
 
     def define_environment_2(self):
         self.width, self.height = 400, 400
