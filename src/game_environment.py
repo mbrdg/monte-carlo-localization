@@ -207,6 +207,20 @@ class Environment:
 
             self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
 
+        def wall_10():
+            manual_edges = [
+                wallmap.Edge((23, 13), (25, 13)),
+                wallmap.Edge((25, 13), (25, 15)),
+                wallmap.Edge((25, 15), (23, 15)),
+                wallmap.Edge((23, 15), (23, 13)),
+            ]
+
+            for edge in manual_edges:
+                self.wallmap.add_edge(edge)
+
+            self.wallmap.add_obstacle(wallmap.Obstacle(
+                manual_edges, LIGHT_GREY))
+
         def maze_1():
             manual_edges = [
                 wallmap.Edge((25, 15), (37, 15)),
@@ -249,6 +263,19 @@ class Environment:
 
             self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
 
+        def box_2():
+            manual_edges = [
+                wallmap.Edge((25, 18), (28, 18)),
+                wallmap.Edge((28, 18), (28, 20)),
+                wallmap.Edge((28, 20), (25, 20)),
+                wallmap.Edge((25, 20), (25, 18)),
+            ]
+
+            for edge in manual_edges:
+                self.wallmap.add_edge(edge)
+
+            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
+
         top_wall_border()
         bottom_wall_border()
         left_wall_border()
@@ -262,7 +289,9 @@ class Environment:
         wall_7()
         wall_8()
         wall_9()
+        wall_10()
         box_1()
+        box_2()
         #maze_1()
 
     def define_environment_2(self):
@@ -285,6 +314,19 @@ class Environment:
             manual_edges = [
                 wallmap.Edge((5, 4), (8, 4)),
                 wallmap.Edge((8, 4), (8, 8)),
+                wallmap.Edge((8, 8), (5, 8)),
+                wallmap.Edge((5, 8), (5, 4)),
+            ]
+
+            for edge in manual_edges:
+                self.wallmap.add_edge(edge)
+
+            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
+
+        def box_1():
+            manual_edges = [
+                wallmap.Edge((5, 25), (6, 27)),
+                wallmap.Edge((6, 27), (8, 8)),
                 wallmap.Edge((8, 8), (5, 8)),
                 wallmap.Edge((5, 8), (5, 4)),
             ]
