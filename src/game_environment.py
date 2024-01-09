@@ -323,18 +323,5 @@ class Environment:
 
             self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
 
-        def box_1():
-            manual_edges = [
-                wallmap.Edge((5, 25), (6, 27)),
-                wallmap.Edge((6, 27), (8, 8)),
-                wallmap.Edge((8, 8), (5, 8)),
-                wallmap.Edge((5, 8), (5, 4)),
-            ]
-
-            for edge in manual_edges:
-                self.wallmap.add_edge(edge)
-
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
-
         borders()
         box_1()

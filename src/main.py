@@ -78,7 +78,7 @@ class Game:
         self.gen_variance_max = 1000
         self.gen_variance_min = 5
 
-        self.rotation_variance_max = math.radians(270)
+        self.rotation_variance_max = math.radians(360)
         self.rotation_variance_min = math.radians(1)
 
         self.current_rotation_variance = self.rotation_variance_max
@@ -146,7 +146,7 @@ class Game:
         #scores_avg = np.mean([score for _, score in scores])
         #scores = [(i, score/scores_avg) for i, score in scores]
         scores.sort(key=lambda x: x[1], reverse=True)
-        top_scores = scores[:10]
+        top_scores = scores[:max(len(particles)//10, 10)]
 
         x, y = np.meshgrid(np.arange(width), np.arange(height))
         density_map = np.zeros((height, width))
@@ -172,7 +172,7 @@ class Game:
             gen_multiplier = max(1.2, np.mean(self.last_scores)/top_scores_avg)
             print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier
-            rot_variance = self.current_rotation_variance * 0.6 + self.rotation_variance_max * 0.4
+            rot_variance = self.current_rotation_variance * 0.2 + self.rotation_variance_max * 0.8
 
         self.last_scores = self.last_scores[1:]
         self.last_scores.append(top_scores_avg)
@@ -190,7 +190,7 @@ class Game:
             gen_variance = self.current_variance * top_scores_avg   
 
             if (len(particles) > MIN_PARTICLES):
-                deductive = (len(particles)-10) * gen_multiplier
+                deductive = (len(particles)-max(len(particles)//10, 10)) * gen_multiplier
                 if deductive <= 0:
                     deductive = 1
                 num_generated_particles = round(deductive)
