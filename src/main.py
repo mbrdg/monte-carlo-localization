@@ -141,12 +141,14 @@ class Game:
             _, p_surrounding_edges = self.get_surrounding_cells_edges(p)
             p.update(p_surrounding_edges, grid_size=self.grid_size)
 
+        number_of_confidents = max(len(particles)//10, 10)
+
         scores = [(i, p.likelihood(ground_thruth))
                 for i, p in enumerate(particles)]
         #scores_avg = np.mean([score for _, score in scores])
         #scores = [(i, score/scores_avg) for i, score in scores]
         scores.sort(key=lambda x: x[1], reverse=True)
-        top_scores = scores[:max(len(particles)//10, 10)]
+        top_scores = scores[:number_of_confidents]
 
         x, y = np.meshgrid(np.arange(width), np.arange(height))
         density_map = np.zeros((height, width))
@@ -189,8 +191,10 @@ class Game:
             self.last_best_gen_score = top_scores_avg
             gen_variance = self.current_variance * top_scores_avg   
 
+            
+
             if (len(particles) > MIN_PARTICLES):
-                deductive = (len(particles)-max(len(particles)//10, 10)) * gen_multiplier
+                deductive = (len(particles)-number_of_confidents) * gen_multiplier
                 if deductive <= 0:
                     deductive = 1
                 num_generated_particles = round(deductive)
