@@ -11,6 +11,8 @@ from time import sleep
 
 import numpy as np
 import pygame
+from shapely import STRtree
+from shapely.geometry import Point
 
 import game_environment as game_environment
 import wallmap
@@ -49,6 +51,10 @@ class Game:
         self.width, self.height = self.enviroment.width, self.enviroment.height
         self.grid_size = self.enviroment.grid_size
 
+        tree = STRtree([o.get_polygon() for o in self.wallmap.get_obstacles()])
+        points = (Point(x, y) for x in range(self.width) for y in range(self.height))
+        points = [(p.x, p.y) for p in points if len(tree.query(p)) == 0]
+
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Montecarlo Localization")
@@ -57,8 +63,7 @@ class Game:
     
         self.particles = [
             Particle(
-                (random.uniform(0, self.width), random.uniform(0, self.height)),
-                random.uniform(0, 2 * math.pi),
+                random.choice(points), random.uniform(0, 2 * math.pi),
                 range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
                 type='particle'
             ) for _ in range(SAMPLES)

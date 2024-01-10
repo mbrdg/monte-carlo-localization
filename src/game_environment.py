@@ -34,7 +34,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def bottom_wall_border():
             edge_0 = wallmap.Edge((0, y_cells_len),
@@ -50,7 +51,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def left_wall_border():
             edge_0 = wallmap.Edge((0, 0), (1, 0))
@@ -62,7 +64,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def right_wall_border():
             edge_0 = wallmap.Edge((x_cells_len, 0),
@@ -77,7 +80,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_1():
             manual_edges = [
@@ -94,7 +98,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_2():
             manual_edges = [
@@ -105,7 +110,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_3():
             manual_edges = [
@@ -119,7 +125,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_4():
             manual_edges = [
@@ -132,7 +139,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_5():
             manual_edges = [
@@ -145,7 +153,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_6():
             manual_edges = [
@@ -162,7 +171,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_7():
             manual_edges = [
@@ -177,7 +187,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def wall_8():
             manual_edges = [
@@ -191,7 +202,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_GREY))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         def maze_1():
             manual_edges = [
@@ -233,7 +245,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_BROWN, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         top_wall_border()
         bottom_wall_border()
@@ -277,7 +290,8 @@ class Environment:
             for edge in manual_edges:
                 self.wallmap.add_edge(edge)
 
-            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
+            obstacle = wallmap.Obstacle(manual_edges, LIGHT_GREY, self.grid_size)
+            self.wallmap.add_obstacle(obstacle)
 
         borders()
         box_1()

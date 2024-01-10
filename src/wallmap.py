@@ -25,10 +25,13 @@ class Edge:
 
 
 class Obstacle:
-    def __init__(self, edges, color):
+    def __init__(self, edges, color, grid_size=16):
+        # Assumes that grid_size is the default from Wallmap
         self.edges = edges
         self.color = color
-        self.polygon = Polygon(itertools.chain.from_iterable((e.pos1, e.pos2) for e in edges))
+
+        coords = [(e.pos1[0] * grid_size, e.pos1[1] * grid_size) for e in edges]
+        self.polygon = Polygon(coords)
 
     def get_polygon(self):
         return self.polygon
