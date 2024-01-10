@@ -52,24 +52,28 @@ class Game:
         self.grid_size = self.enviroment.grid_size
 
         tree = STRtree([o.get_polygon() for o in self.wallmap.get_obstacles()])
-        points = (Point(x, y) for x in range(self.width) for y in range(self.height))
-        points = [
-            (p.x, p.y) for p in points
+        lattice = (Point(x, y) for x in range(self.width) for y in range(self.height))
+        self.points = np.array([
+            [p.x, p.y] for p in lattice
             if not len(tree.query(p, predicate='dwithin', distance=Particle.PARTICLE_SIZE))
-        ]
+        ])
 
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Montecarlo Localization")
         self.clock = pygame.time.Clock()
 
-    
+        initial_particle_positions = self.generate_particle_positions(
+            self.points,
+            np.ones((self.points.shape[0], )),
+            SAMPLES
+        )
         self.particles = [
             Particle(
-                random.choice(points), random.uniform(0, 2 * math.pi),
+                (p[0], p[1]), random.uniform(0, 2 * math.pi),
                 range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
                 type='particle'
-            ) for _ in range(SAMPLES)
+            ) for p in initial_particle_positions
         ]
 
         self.robot_start_positions = [
@@ -213,6 +217,7 @@ class Game:
                 self.gaussian_distribution(
                     x, y, particles[i].get_position(), gen_variance)
 
+
         density_map /= np.sum(density_map)
         
 
@@ -310,7 +315,7 @@ class Game:
             robot_measure = self.robot.measure(surrounding_edges)
 
             if frame_count % GEN_INTERVAL == 0:
-              self.particles = self.generate_particles(self.particles, robot_measure)
+                self.particles = self.generate_particles(self.particles, robot_measure)
 
             self.wallmap.draw(self.screen, draw_tile_debug=self.wall_density_viz)
 
