@@ -53,7 +53,10 @@ class Game:
 
         tree = STRtree([o.get_polygon() for o in self.wallmap.get_obstacles()])
         points = (Point(x, y) for x in range(self.width) for y in range(self.height))
-        points = [(p.x, p.y) for p in points if len(tree.query(p)) == 0]
+        points = [
+            (p.x, p.y) for p in points
+            if not len(tree.query(p, predicate='dwithin', distance=Particle.PARTICLE_SIZE))
+        ]
 
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
