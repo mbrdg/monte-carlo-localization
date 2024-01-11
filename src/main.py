@@ -4,16 +4,12 @@ import configparser
 import math
 import random
 import sys
-import threading
 from itertools import chain
-from threading import Thread
-from time import sleep
 
 import numpy as np
 import pygame
 
 import game_environment as game_environment
-import wallmap
 from consts import *
 from robot import Particle
 from settings import *
@@ -25,6 +21,18 @@ ROT_SPEED = 5
 GEN_VARIANCE = 1000
 
 GEN_INTERVAL = 8
+
+collect_data = False
+show_data = False
+simulation_statistics = [[
+    'generation_variance'
+    'generation_split',
+    'generation_multiplier',
+    'rotation_variance',
+    'top_scores_avg',
+    'mean_last_scores',
+    'num_generated_particles',
+]]
 
 
 class Game:
@@ -82,7 +90,7 @@ class Game:
         self.rotation_variance_min = math.radians(1)
 
         self.current_variance = self.gen_variance_max
-        self.last_scores = [0, 0, 0, 0, 0]
+        self.last_scores = []
         self.num_last_scores = 5
 
         self.generation_split = 0.5
@@ -90,8 +98,8 @@ class Game:
 
         self.last_position_variance = 1000
 
-        print(f"Variance limits {self.gen_variance_min},{self.gen_variance_max} ; Samples {SAMPLES}")
-
+        self.resampling_count = 0
+        
     def get_surrounding_cells_edges(self, particle):
         surrounding_cells = self.wallmap.get_surrounding_cells(
             particle.get_position(),
@@ -132,6 +140,8 @@ class Game:
        
     def generate_particles(self, particles, ground_thruth):
 
+        self.resampling_count += 1
+
         MIN_PARTICLES = 15
             
         width, height = self.width, self.height
@@ -163,22 +173,23 @@ class Game:
 
         gen_multiplier = 1
 
-        print(f"Last score {self.last_scores} ; Top score {top_scores_avg}")
+        # print(f"Last score {self.last_scores} ; Top score {top_scores_avg}")
         if round(top_scores_avg,2) >= np.mean(self.last_scores) or top_scores_avg > 0.90:
             gen_multiplier = min(0.9, top_scores_avg)
-            print(f"Gen multiplier {gen_multiplier}")
+            # print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier * 0.9
             rot_variance *= gen_multiplier
         else:
             gen_multiplier = max(1.2, np.mean(self.last_scores)/top_scores_avg)
-            print(f"Gen multiplier {gen_multiplier}")
+            # print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier
             rot_variance *= gen_multiplier
 
         gen_variance = max(self.gen_variance_min, gen_variance) #* top_scores_avg   
         self.current_variance = gen_variance
 
-        self.last_scores = self.last_scores[1:]
+        if len(self.last_scores) >= 5:
+            self.last_scores = self.last_scores[1:]
         self.last_scores.append(top_scores_avg)
 
         self.generation_split = self.generation_split * gen_multiplier # goes down with better scores
@@ -191,7 +202,7 @@ class Game:
             num_generated_particles = round(deductive)
             num_generated_particles = min(SAMPLES, num_generated_particles)
             num_generated_particles = max(MIN_PARTICLES, num_generated_particles)
-            print(f"Num generated particles {num_generated_particles}")
+            # print(f"Num generated particles {num_generated_particles}")
         else:
             num_generated_particles = MIN_PARTICLES
 
@@ -208,7 +219,7 @@ class Game:
             num_random_particles = round(num_generated_particles * self.generation_split)
             num_particles_from_gmm = num_generated_particles - num_random_particles
 
-            print(f"Num random particles {num_random_particles} ; Num gmm particles {num_particles_from_gmm}")
+            # print(f"Num random particles {num_random_particles} ; Num gmm particles {num_particles_from_gmm}")
 
             generated_particle_positions_gmm = self.generate_particle_positions(np.array(
                 [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)   
@@ -230,7 +241,20 @@ class Game:
         else:
             new_particles = particles
 
-        print(f"Total particles {len(particles)} ; Scores svg {top_scores_avg} ; Variance {gen_variance}; Generation_split {self.generation_split}")
+        # print(f"Total particles {len(particles)} ; Scores svg {top_scores_avg} ; Variance {gen_variance}; Generation_split {self.generation_split}")
+
+        if collect_data:
+            simulation_statistics.append([
+                gen_variance,
+                self.generation_split,
+                gen_multiplier,
+                rot_variance,
+                top_scores_avg,
+                np.mean(self.last_scores),
+                num_generated_particles
+            ])
+        if show_data:
+            print(f"{self.resampling_count}:: Generation variance: { gen_variance } ; Generation split: { self.generation_split } ; Generation multiplier: { gen_multiplier } ; Rotation variance: { rot_variance } ; Top scores avg: { top_scores_avg } ; Mean last scores: { np.mean(self.last_scores) } ; Num generated particles: { num_generated_particles }")
 
         return new_particles
     
@@ -315,7 +339,7 @@ class Game:
 
             # Cap the frame rate
             self.clock.tick(FPS)
-            print(f'FPS {self.clock.get_fps()}')
+            # print(f'FPS {self.clock.get_fps()}')
 
             frame_count += 1
 
@@ -365,8 +389,14 @@ if __name__ == "__main__":
                         help='Path to the config file')
     parser.add_argument('--sim_settings', type=str, default='SimulationSettings',
                         help='Name of the simulation settings in the config file')
+    parser.add_argument('--collect_data', action='store_true',
+                        help='Whether to collect data')
+    parser.add_argument('--show_data', action='store_true',
+                        help='Whether to show data')
     args = parser.parse_args()
 
+    collect_data = args.collect_data
+    show_data = args.show_data
     config_data = read_config(args.config, args.sim_settings)
 
     game = Game(config_data)
