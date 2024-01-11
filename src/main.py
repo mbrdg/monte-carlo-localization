@@ -8,6 +8,7 @@ import sys
 from itertools import chain
 from datetime import datetime
 import os
+import matplotlib.pyplot as plt
 
 import numpy as np
 import pygame
@@ -28,8 +29,12 @@ GEN_INTERVAL = 8
 save_data = False
 show_data = False
 
+save_density = False
+show_density = False
+
 stats_file = None
 record_directory = None
+density_directory = None
 
 class Game:
 
@@ -134,7 +139,9 @@ class Game:
                 
             return (mean, variance)
        
-    def generate_particles(self, particles, ground_thruth):
+    def generate_particles(self, particles, ground_thruth, fig_ax):
+
+        fig, ax = fig_ax
 
         self.resampling_count += 1
 
@@ -251,7 +258,14 @@ class Game:
             print(f"Top scores avg: { top_scores_avg } ;")
             print(f"Mean last scores: { np.mean(self.last_scores) } ;")
             print(f"Num generated particles: { num_generated_particles } ;")
-            
+        
+        if show_density or save_density:
+            ax.imshow(density_map, cmap='hot', interpolation='nearest')
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            if save_density:
+                output_path = os.path.join(density_directory, f'{str(self.resampling_count).zfill(8)}.png')
+                fig.savefig(output_path, bbox_inches='tight')
 
         return new_particles
     
@@ -259,6 +273,28 @@ class Game:
         running = True
 
         frame_count = 0
+
+
+        fig, ax = None, None
+
+        if show_density or save_density:
+
+            plt.ion()
+
+            fig, ax = plt.subplots()
+
+            # Remove x and y labels
+            ax.set_xlabel('')
+            ax.set_ylabel('')
+
+            # Remove x and y ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            ax.imshow(np.zeros([self.height, self.width]), cmap='hot')
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+
 
         while running:
             for event in pygame.event.get():
@@ -311,7 +347,7 @@ class Game:
             robot_measure = self.robot.measure(surrounding_edges)
 
             if frame_count % GEN_INTERVAL == 0:
-              self.particles = self.generate_particles(self.particles, robot_measure)
+              self.particles = self.generate_particles(self.particles, robot_measure, (fig,ax))
 
             Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211), draw_lasers=self.view_laser, draw_laser_outlines=self.view_laser_outline)
 
@@ -404,23 +440,34 @@ if __name__ == "__main__":
                         help='Whether to show data')
     parser.add_argument('--save_frames', action='store_true',
                         help='Whether to save frames')
+    parser.add_argument('--show_density', action='store_true',
+                        help='Whether to show data')
+    parser.add_argument('--save_density', action='store_true',
+                        help='')
     args = parser.parse_args()
 
     save_data = args.save_data
     show_data = args.show_data
     save_frames = args.save_frames
+    save_density = args.save_density
+    show_density = args.show_density
     config_data = read_config(args.config, args.sim_settings)
+
+
+    time_id = datetime.now().strftime("%Y%m%d%H%M%S")
 
     if save_data:
         # open file with append and create file if it doesn't exist
-        current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
-        stats_file = open(f"./stats/simulation_statistics{current_date_hour_id}.csv", "a+")
+        stats_file = open(f"./stats/simulation_statistics{time_id}.csv", "a+")
         stats_file.write("generation_variance,generation_split,generation_multiplier,rotation_variance,top_scores_avg,mean_last_scores,num_generated_particles\n")
 
     if save_frames:
-        current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
-        record_directory = f"./frames/frames_{current_date_hour_id}"
+        record_directory = f"./frames/frames_{time_id}"
         os.mkdir(record_directory)
+
+    if save_density:
+        density_directory = f"./density/density_{time_id}"
+        os.mkdir(density_directory)
 
     game = Game(config_data)
     game.run()
