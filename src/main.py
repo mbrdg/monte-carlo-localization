@@ -78,7 +78,7 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[0], 0,
+            self.robot_start_positions[1], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
             type='robot'
         )
@@ -209,7 +209,7 @@ class Game:
         for i, weight in top_scores:
             density_map += weight * \
                 self.gaussian_distribution(
-                    x, y, particles[i].get_position(), gen_variance)
+                    x, y, particles[i].get_position(), gen_variance * (1/weight))
 
         density_map /= np.sum(density_map)
         
