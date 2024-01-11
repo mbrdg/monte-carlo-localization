@@ -165,7 +165,7 @@ class Game:
         if round(top_scores_avg,2) >= np.mean(self.last_scores) or top_scores_avg > 0.90:
             gen_multiplier = min(0.9, top_scores_avg)
             print(f"Gen multiplier {gen_multiplier}")
-            gen_variance = self.current_variance * gen_multiplier
+            gen_variance = self.current_variance * gen_multiplier * 0.9
             rot_variance = self.current_rotation_variance * gen_multiplier
             rot_variance = max(self.rotation_variance_min, rot_variance)
         else:
@@ -174,33 +174,25 @@ class Game:
             gen_variance = self.current_variance * gen_multiplier
             rot_variance = self.current_rotation_variance * 0.2 + self.rotation_variance_max * 0.8
 
+        gen_variance = max(self.gen_variance_min, gen_variance) #* top_scores_avg   
+        self.current_variance = gen_variance
+
         self.last_scores = self.last_scores[1:]
         self.last_scores.append(top_scores_avg)
 
         self.generation_split = self.generation_split * gen_multiplier # goes down with better scores
         self.generation_split = min(self.max_generation_split, self.generation_split)
 
-        gen_variance = max(self.gen_variance_min, gen_variance)
-
-        self.current_variance = gen_variance
-        
-
-        if (True):
-            self.last_best_gen_score = top_scores_avg
-            gen_variance = self.current_variance * top_scores_avg   
-
-            
-
-            if (len(particles) > MIN_PARTICLES):
-                deductive = (len(particles)-number_of_confidents) * gen_multiplier
-                if deductive <= 0:
-                    deductive = 1
-                num_generated_particles = round(deductive)
-                num_generated_particles = min(SAMPLES, num_generated_particles)
-                num_generated_particles = max(MIN_PARTICLES, num_generated_particles)
-                print(f"Num generated particles {num_generated_particles}")
-            else:
-                num_generated_particles = MIN_PARTICLES
+        if (len(particles) > MIN_PARTICLES):
+            deductive = (len(particles)-number_of_confidents) * gen_multiplier
+            if deductive <= 0:
+                deductive = 1
+            num_generated_particles = round(deductive)
+            num_generated_particles = min(SAMPLES, num_generated_particles)
+            num_generated_particles = max(MIN_PARTICLES, num_generated_particles)
+            print(f"Num generated particles {num_generated_particles}")
+        else:
+            num_generated_particles = MIN_PARTICLES
 
         for i, weight in top_scores:
             density_map += weight * \
@@ -218,9 +210,7 @@ class Game:
             print(f"Num random particles {num_random_particles} ; Num gmm particles {num_particles_from_gmm}")
 
             generated_particle_positions = self.generate_particle_positions(np.array(
-                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)
-
-            print(f"Generated particle positions {density_map}")       
+                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)   
             
             generated_particle_positions_2 = np.array(
                 [[random.uniform(0, self.width), random.uniform(0, self.height)] for _ in range(num_random_particles)])
@@ -233,12 +223,9 @@ class Game:
             generated_particle_positions
 
             top_rotations = [particles[i].get_angle()% (math.pi*2) for i, _ in top_scores]
-            #print(f"Top rotations {top_rotations}")
 
             (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
             rot_mean = rot_mean % (math.pi*2)
-
-            #print(f"Rot mean {rot_mean} ; Rot variance {rot_variance}")
 
             new_particles = [particles[i] for i, _ in top_scores]
             new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
