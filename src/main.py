@@ -145,8 +145,7 @@ class Game:
 
         scores = [(i, p.likelihood(ground_thruth))
                 for i, p in enumerate(particles)]
-        #scores_avg = np.mean([score for _, score in scores])
-        #scores = [(i, score/scores_avg) for i, score in scores]
+
         scores.sort(key=lambda x: x[1], reverse=True)
         top_scores = scores[:number_of_confidents]
 
@@ -162,7 +161,6 @@ class Game:
 
         gen_multiplier = 1
 
-        # TODO account for cumulative error?
         print(f"Last score {self.last_scores} ; Top score {top_scores_avg}")
         if round(top_scores_avg,2) >= np.mean(self.last_scores) or top_scores_avg > 0.90:
             gen_multiplier = min(0.9, top_scores_avg)
@@ -220,7 +218,9 @@ class Game:
             print(f"Num random particles {num_random_particles} ; Num gmm particles {num_particles_from_gmm}")
 
             generated_particle_positions = self.generate_particle_positions(np.array(
-                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)       
+                [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)
+
+            print(f"Generated particle positions {density_map}")       
             
             generated_particle_positions_2 = np.array(
                 [[random.uniform(0, self.width), random.uniform(0, self.height)] for _ in range(num_random_particles)])
@@ -237,7 +237,7 @@ class Game:
 
             (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
             rot_mean = rot_mean % (math.pi*2)
-            #rot_variance = rot_variance * (1 / top_scores_avg)
+
             #print(f"Rot mean {rot_mean} ; Rot variance {rot_variance}")
 
             new_particles = [particles[i] for i, _ in top_scores]
@@ -309,9 +309,6 @@ class Game:
               self.particles = self.generate_particles(self.particles, robot_measure)
 
             self.wallmap.draw(self.screen, draw_tile_debug=self.wall_density_viz)
-
-            # particle_measurements = particle.measure(surrounding_edges)
-            # print(Particle.likelihood(ground_thruth, particle_measurements))
 
             Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211), draw_lasers=self.view_laser, draw_laser_outlines=self.view_laser_outline)
 
