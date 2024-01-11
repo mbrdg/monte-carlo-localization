@@ -25,7 +25,7 @@ GEN_VARIANCE = 1000
 
 GEN_INTERVAL = 8
 
-collect_data = False
+save_data = False
 show_data = False
 
 stats_file = None
@@ -239,7 +239,7 @@ class Game:
 
         # print(f"Total particles {len(particles)} ; Scores svg {top_scores_avg} ; Variance {gen_variance}; Generation_split {self.generation_split}")
 
-        if collect_data:
+        if save_data:
             stats_file.write(f"{gen_variance},{self.generation_split},{gen_multiplier},{rot_variance},{top_scores_avg},{np.mean(self.last_scores)},{num_generated_particles}\n")
 
         if show_data:
@@ -398,7 +398,7 @@ if __name__ == "__main__":
                         help='Path to the config file')
     parser.add_argument('--sim_settings', type=str, default='SimulationSettings',
                         help='Name of the simulation settings in the config file')
-    parser.add_argument('--collect_data', action='store_true',
+    parser.add_argument('--save_data', action='store_true',
                         help='Whether to collect data')
     parser.add_argument('--show_data', action='store_true',
                         help='Whether to show data')
@@ -406,12 +406,12 @@ if __name__ == "__main__":
                         help='Whether to save frames')
     args = parser.parse_args()
 
-    collect_data = args.collect_data
+    save_data = args.save_data
     show_data = args.show_data
     save_frames = args.save_frames
     config_data = read_config(args.config, args.sim_settings)
 
-    if collect_data:
+    if save_data:
         # open file with append and create file if it doesn't exist
         current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
         stats_file = open(f"./stats/simulation_statistics{current_date_hour_id}.csv", "a+")
