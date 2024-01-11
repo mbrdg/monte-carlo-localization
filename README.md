@@ -24,6 +24,13 @@ resampling, `matplotlib` is required.
 > [!IMPORTANT]
 > No environment file is provided.
 
+# Documentation
+
+This project's presentation is available [here](https://shorturl.at/bpvBG).
+
+> [!NOTE]
+> Only available to people from VUT.
+
 ## Authors
 
 - [Francisco Colino](mailto:xcolin00@stud.fit.vutbr.cz)
