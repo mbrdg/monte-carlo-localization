@@ -3,8 +3,10 @@ import argparse
 import configparser
 import math
 import random
+import signal
 import sys
 from itertools import chain
+from datetime import datetime
 
 import numpy as np
 import pygame
@@ -24,16 +26,8 @@ GEN_INTERVAL = 8
 
 collect_data = False
 show_data = False
-simulation_statistics = [[
-    'generation_variance'
-    'generation_split',
-    'generation_multiplier',
-    'rotation_variance',
-    'top_scores_avg',
-    'mean_last_scores',
-    'num_generated_particles',
-]]
 
+stats_file = None
 
 class Game:
 
@@ -244,17 +238,10 @@ class Game:
         # print(f"Total particles {len(particles)} ; Scores svg {top_scores_avg} ; Variance {gen_variance}; Generation_split {self.generation_split}")
 
         if collect_data:
-            simulation_statistics.append([
-                gen_variance,
-                self.generation_split,
-                gen_multiplier,
-                rot_variance,
-                top_scores_avg,
-                np.mean(self.last_scores),
-                num_generated_particles
-            ])
+            stats_file.write(f"{gen_variance},{self.generation_split},{gen_multiplier},{rot_variance},{top_scores_avg},{np.mean(self.last_scores)},{num_generated_particles}\n")
+
         if show_data:
-            print(f"{self.resampling_count}::")
+            print(f"\n{self.resampling_count}::")
             print(f"Generation variance: { gen_variance } ;")
             print(f"Generation split: { self.generation_split } ;")
             print(f"Generation multiplier: { gen_multiplier } ;")
@@ -391,7 +378,15 @@ def read_config(file_path, sim_settings_name):
         'num_sensors': num_sensors
     }
 
+
+def signal_handler(sig, frame):
+    print("\nCaught Ctrl+C! Exiting...")
+    sys.exit(0)
+
 if __name__ == "__main__":
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     parser = argparse.ArgumentParser(description='Run the robot simulation')
     parser.add_argument('--config', type=str, default='config.ini',
                         help='Path to the config file')
@@ -406,6 +401,12 @@ if __name__ == "__main__":
     collect_data = args.collect_data
     show_data = args.show_data
     config_data = read_config(args.config, args.sim_settings)
+
+    if collect_data:
+        # open file with append and create file if it doesn't exist
+        current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
+        stats_file = open(f"./stats/simulation_statistics{current_date_hour_id}.csv", "a+")
+        stats_file.write("generation_variance,generation_split,generation_multiplier,rotation_variance,top_scores_avg,mean_last_scores,num_generated_particles\n")
 
     game = Game(config_data)
     game.run()
