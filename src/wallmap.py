@@ -111,9 +111,10 @@ class Wallmap:
                 pygame.Rect(tx * self.grid_size, yx * self.grid_size, self.grid_size, self.grid_size)
             )
 
-    def draw(self, screen, *, draw_tile_debug=False):
-        if draw_tile_debug:
-            self.draw_tile_debug(screen)
+    def draw_debug(self, screen):
+        self.draw_tile_debug(screen)
+
+    def draw(self, screen):
         self.draw_walls(screen)
         self.draw_obstacles(screen)
 

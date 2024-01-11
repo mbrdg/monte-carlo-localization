@@ -70,7 +70,7 @@ class Game:
         ]
 
         self.robot = Particle(
-            self.robot_start_positions[1], 0,
+            self.robot_start_positions[0], 0,
             range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors,
             type='robot'
         )
@@ -292,12 +292,12 @@ class Game:
             if frame_count % GEN_INTERVAL == 0:
               self.particles = self.generate_particles(self.particles, robot_measure)
 
-            self.wallmap.draw(self.screen, draw_tile_debug=self.wall_density_viz)
-
             Particle.draw_robot(self.screen, self.robot, color=(148, 0, 211), draw_lasers=self.view_laser, draw_laser_outlines=self.view_laser_outline)
 
             for p in self.particles:
                 Particle.draw_particle(self.screen, p)
+
+            self.wallmap.draw(self.screen)
 
             if self.cell_range_viz:
                 for key, _ in surrounding_cells:
