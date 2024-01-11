@@ -7,6 +7,7 @@ import signal
 import sys
 from itertools import chain
 from datetime import datetime
+import os
 
 import numpy as np
 import pygame
@@ -28,6 +29,7 @@ collect_data = False
 show_data = False
 
 stats_file = None
+record_directory = None
 
 class Game:
 
@@ -336,7 +338,11 @@ class Game:
             self.clock.tick(FPS)
             # print(f'FPS {self.clock.get_fps()}')
 
+            if save_frames:
+                pygame.image.save(self.screen, f"{record_directory}/{str(frame_count).zfill(8)}.png")
+
             frame_count += 1
+
 
         pygame.quit()
         sys.exit()
@@ -396,10 +402,13 @@ if __name__ == "__main__":
                         help='Whether to collect data')
     parser.add_argument('--show_data', action='store_true',
                         help='Whether to show data')
+    parser.add_argument('--save_frames', action='store_true',
+                        help='Whether to save frames')
     args = parser.parse_args()
 
     collect_data = args.collect_data
     show_data = args.show_data
+    save_frames = args.save_frames
     config_data = read_config(args.config, args.sim_settings)
 
     if collect_data:
@@ -407,6 +416,11 @@ if __name__ == "__main__":
         current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
         stats_file = open(f"./stats/simulation_statistics{current_date_hour_id}.csv", "a+")
         stats_file.write("generation_variance,generation_split,generation_multiplier,rotation_variance,top_scores_avg,mean_last_scores,num_generated_particles\n")
+
+    if save_frames:
+        current_date_hour_id = datetime.now().strftime("%Y%m%d%H%M%S")
+        record_directory = f"./frames/frames_{current_date_hour_id}"
+        os.mkdir(record_directory)
 
     game = Game(config_data)
     game.run()
