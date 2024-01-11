@@ -81,7 +81,6 @@ class Game:
         self.rotation_variance_max = math.radians(360)
         self.rotation_variance_min = math.radians(1)
 
-        self.current_rotation_variance = self.rotation_variance_max
         self.current_variance = self.gen_variance_max
         self.last_scores = [0, 0, 0, 0, 0]
         self.num_last_scores = 5
@@ -154,10 +153,13 @@ class Game:
 
         top_scores_avg = np.mean([score for _, score in top_scores])
 
+        top_rotations = [particles[i].get_angle()% (math.pi*2) for i, _ in top_scores]
+        (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
+        rot_mean = rot_mean % (math.pi*2)
+
         num_generated_particles = (len(particles) - len(top_scores))
 
         gen_variance = self.current_variance
-        rot_variance = self.current_rotation_variance
 
         gen_multiplier = 1
 
@@ -166,13 +168,12 @@ class Game:
             gen_multiplier = min(0.9, top_scores_avg)
             print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier * 0.9
-            rot_variance = self.current_rotation_variance * gen_multiplier
-            rot_variance = max(self.rotation_variance_min, rot_variance)
+            rot_variance *= gen_multiplier
         else:
             gen_multiplier = max(1.2, np.mean(self.last_scores)/top_scores_avg)
             print(f"Gen multiplier {gen_multiplier}")
             gen_variance = self.current_variance * gen_multiplier
-            rot_variance = self.current_rotation_variance * 0.2 + self.rotation_variance_max * 0.8
+            rot_variance *= gen_multiplier
 
         gen_variance = max(self.gen_variance_min, gen_variance) #* top_scores_avg   
         self.current_variance = gen_variance
@@ -209,27 +210,23 @@ class Game:
 
             print(f"Num random particles {num_random_particles} ; Num gmm particles {num_particles_from_gmm}")
 
-            generated_particle_positions = self.generate_particle_positions(np.array(
+            generated_particle_positions_gmm = self.generate_particle_positions(np.array(
                 [x.flatten(), y.flatten()]).T, density_map.flatten(), num_particles_from_gmm)   
             
-            generated_particle_positions_2 = np.array(
+            generated_particle_positions_random = np.array(
                 [[random.uniform(0, self.width), random.uniform(0, self.height)] for _ in range(num_random_particles)])
             
-            if len(generated_particle_positions) > 0 and len(generated_particle_positions_2) > 0:
-                generated_particle_positions = np.concatenate((generated_particle_positions, generated_particle_positions_2))  
-            else :
-                generated_particle_positions = generated_particle_positions
-
-            generated_particle_positions
-
-            top_rotations = [particles[i].get_angle()% (math.pi*2) for i, _ in top_scores]
-
-            (rot_mean, rot_variance) = self.fit_normal(top_rotations, [score for _, score in top_scores])
-            rot_mean = rot_mean % (math.pi*2)
-
             new_particles = [particles[i] for i, _ in top_scores]
-            new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
-                                        range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions])
+
+            if len(generated_particle_positions_gmm) > 0:
+
+                new_particles.extend([Particle(position, (np.random.normal(loc=rot_mean, scale=rot_variance))%(math.pi*2),
+                                        range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions_gmm])
+            
+            if len(generated_particle_positions_random) > 0:
+                new_particles.extend([Particle(position, random.uniform(0, 2 * math.pi),
+                                        range_=self.sensor_range, aperture=self.sensor_aperture, num_sensors=self.num_sensors) for position in generated_particle_positions_random])
+
         else:
             new_particles = particles
 
