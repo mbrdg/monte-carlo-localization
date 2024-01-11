@@ -6,6 +6,7 @@ import numpy as np
 import pygame
 
 import geometry_utils
+from sklearn.metrics.pairwise import cosine_similarity
 
 SIGMA_MOVE = .5
 SIGMA_ROTATE = math.radians(.3)

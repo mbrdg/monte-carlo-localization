@@ -276,6 +276,19 @@ class Environment:
 
             self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
 
+        def box_3():
+            manual_edges = [
+                wallmap.Edge((35, 26), (36, 26)),
+                wallmap.Edge((36, 26), (36, 28)),
+                wallmap.Edge((36, 28), (35, 28)),
+                wallmap.Edge((35, 28), (35, 26)),
+            ]
+
+            for edge in manual_edges:
+                self.wallmap.add_edge(edge)
+
+            self.wallmap.add_obstacle(wallmap.Obstacle(manual_edges, LIGHT_BROWN))
+
         top_wall_border()
         bottom_wall_border()
         left_wall_border()
@@ -292,6 +305,7 @@ class Environment:
         wall_10()
         box_1()
         box_2()
+        box_3()
         #maze_1()
 
     def define_environment_2(self):

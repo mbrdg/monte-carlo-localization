@@ -254,7 +254,15 @@ class Game:
                 num_generated_particles
             ])
         if show_data:
-            print(f"{self.resampling_count}:: Generation variance: { gen_variance } ; Generation split: { self.generation_split } ; Generation multiplier: { gen_multiplier } ; Rotation variance: { rot_variance } ; Top scores avg: { top_scores_avg } ; Mean last scores: { np.mean(self.last_scores) } ; Num generated particles: { num_generated_particles }")
+            print(f"{self.resampling_count}::")
+            print(f"Generation variance: { gen_variance } ;")
+            print(f"Generation split: { self.generation_split } ;")
+            print(f"Generation multiplier: { gen_multiplier } ;")
+            print(f"Rotation variance: { rot_variance } ;")
+            print(f"Top scores avg: { top_scores_avg } ;")
+            print(f"Mean last scores: { np.mean(self.last_scores) } ;")
+            print(f"Num generated particles: { num_generated_particles } ;")
+            
 
         return new_particles
     
